@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { initials } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
+import useIsMobile from '../useIsMobile.js';
 import { navEntries, tabTitles } from './sampleData.js';
 import NewJobModal from './NewJobModal.jsx';
 import InboxTab from './InboxTab.jsx';
@@ -37,7 +38,7 @@ const TAB_TITLES = {
 // Tabs still running on the storyboard's static data.
 const SAMPLE_TABS = new Set(['schedule', 'hours', 'clients', 'templates', 'reports']);
 
-function Sidebar({ tab, setTab }) {
+function Sidebar({ tab, setTab, onNavigate }) {
   const { profile, signOut } = useAuth();
   const { jobs } = useData();
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
@@ -46,6 +47,7 @@ function Sidebar({ tab, setTab }) {
     <div style={{
       flex: 'none', width: 220, background: '#3a2c20', color: '#e8ddce',
       display: 'flex', flexDirection: 'column', padding: '18px 14px', overflowY: 'auto',
+      height: '100%',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '2px 6px 18px' }}>
         <div style={{
@@ -59,7 +61,7 @@ function Sidebar({ tab, setTab }) {
         const on = tab === key;
         const hasBadge = key === 'review' && reviewCount > 0;
         return (
-          <button key={key} onClick={() => setTab(key)} style={{
+          <button key={key} onClick={() => { setTab(key); if (onNavigate) onNavigate(); }} style={{
             display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
             border: 'none', cursor: 'pointer', borderRadius: 9, padding: '9px 11px', marginBottom: 2,
             fontSize: 13.5, fontWeight: on ? 700 : 500,
@@ -103,31 +105,63 @@ function Sidebar({ tab, setTab }) {
 
 export default function ConsoleShell() {
   const { ready } = useData();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState('dashboard');
   const [showNewJob, setShowNewJob] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [title, subBase] = TAB_TITLES[tab];
   const sub = SAMPLE_TABS.has(tab) ? subBase + ' · sample data' : subBase;
   const View = TAB_VIEWS[tab];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#faf7f2', color: '#2a211b' }}>
-      <Sidebar tab={tab} setTab={setTab} />
+    <div className="vh-shell" style={{ display: 'flex', background: '#faf7f2', color: '#2a211b' }}>
+      {!isMobile && <Sidebar tab={tab} setTab={setTab} />}
+
+      {/* mobile drawer */}
+      {isMobile && drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(42,33,27,.5)' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}>
+            <Sidebar tab={tab} setTab={setTab} onNavigate={() => setDrawerOpen(false)} />
+          </div>
+        </div>
+      )}
+
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{
           flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 24px', background: '#fff', borderBottom: '1px solid #ece5db',
+          gap: 10, padding: isMobile ? '10px 12px' : '16px 24px',
+          background: '#fff', borderBottom: '1px solid #ece5db',
         }}>
-          <div>
-            <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 20, lineHeight: 1.1 }}>{title}</div>
-            <div style={{ fontSize: 12, color: '#a1927f', marginTop: 2 }}>{sub}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {isMobile && (
+              <button onClick={() => setDrawerOpen(true)} aria-label="Menu" style={{
+                border: '1px solid #ece5db', background: '#faf7f2', borderRadius: 9,
+                width: 38, height: 38, cursor: 'pointer', flex: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17, color: '#3a2c20', lineHeight: 1,
+              }}>☰</button>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontFamily: franklin, fontWeight: 800, fontSize: isMobile ? 17 : 20, lineHeight: 1.1,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{title}</div>
+              <div style={{
+                fontSize: isMobile ? 11 : 12, color: '#a1927f', marginTop: 2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{sub}</div>
+            </div>
           </div>
           <button onClick={() => setShowNewJob(true)} style={{
             border: 'none', background: '#d96b2b', color: '#fff', fontWeight: 700,
-            fontSize: 12.5, borderRadius: 9, padding: '9px 15px', cursor: 'pointer',
+            fontSize: 12.5, borderRadius: 9, padding: '9px 15px', cursor: 'pointer', flex: 'none',
           }}>+ New job</button>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px 30px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px 24px' : '22px 24px 30px' }}>
           {ready
             ? <View />
             : <div style={{ color: '#a1927f', fontSize: 13 }}>Loading live data…</div>}

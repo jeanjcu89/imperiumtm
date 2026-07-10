@@ -59,6 +59,18 @@ function Gate() {
 }
 
 export default function App() {
+  // Dev-only design preview with mock data: `npm run dev` + /?mock=1.
+  // import.meta.env.DEV is compile-time false in production builds, so
+  // the mock module is tree-shaken out of deploys entirely.
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('mock')) {
+    const DevPreview = React.lazy(() => import('./dev/DevPreview.jsx'));
+    return (
+      <React.Suspense fallback={null}>
+        <DevPreview />
+      </React.Suspense>
+    );
+  }
+
   return (
     <AuthProvider>
       <Gate />

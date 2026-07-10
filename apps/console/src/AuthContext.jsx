@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { fetchProfile, signIn, signOut, signUpCompany } from '@imperium/shared';
 import { client } from './lib/client.js';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {

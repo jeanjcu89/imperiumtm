@@ -6,7 +6,7 @@ import {
 } from '@imperium/shared';
 import { useAuth } from './AuthContext.jsx';
 
-const DataContext = createContext(null);
+export const DataContext = createContext(null);
 export const useData = () => useContext(DataContext);
 
 // Company-scoped live data for the console. Mount only when a profile exists.

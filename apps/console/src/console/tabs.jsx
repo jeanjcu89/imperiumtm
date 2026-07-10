@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { statusMeta, prog, timeMeta, getPhotoUrl } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
+import useIsMobile from '../useIsMobile.js';
 import { timesheet, clients, reportStats, reportBars, schedule, templates } from './sampleData.js';
 
 const franklin = "'Libre Franklin',sans-serif";
@@ -11,6 +12,7 @@ const card = { background: '#fff', border: '1px solid #ece5db', borderRadius: 14
 
 export function DashboardTab() {
   const { jobs, team, issues } = useData();
+  const isMobile = useIsMobile();
   const activeCount = jobs.filter(j => j.status === 'inprogress' || j.status === 'todo').length;
   const approvedCount = jobs.filter(j => j.status === 'approved').length;
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
@@ -24,16 +26,16 @@ export function DashboardTab() {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? 10 : 14, marginBottom: 20 }}>
         {stats.map(s => (
-          <div key={s.label} style={{ ...card, padding: 16 }}>
+          <div key={s.label} style={{ ...card, padding: isMobile ? 13 : 16 }}>
             <div style={{ fontSize: 11, color: '#a1927f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
-            <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 30, marginTop: 8, color: s.color }}>{s.value}</div>
+            <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: isMobile ? 26 : 30, marginTop: 8, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 11.5, color: '#8a7d70', marginTop: 3 }}>{s.sub}</div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 16 }}>
         <div style={{ ...card, padding: 18 }}>
           <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Live job board</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -89,6 +91,7 @@ const jobsGrid = '1.5fr 1.6fr 1fr .8fr 1fr .9fr 28px';
 
 export function JobsTab() {
   const { jobs, deleteJob } = useData();
+  const isMobile = useIsMobile();
   const [error, setError] = useState('');
 
   const remove = async (job) => {
@@ -103,6 +106,50 @@ export function JobsTab() {
       <div style={{ ...card, padding: 50, textAlign: 'center', color: '#a1927f' }}>
         <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 16, color: '#2a211b' }}>No jobs yet</div>
         <div style={{ fontSize: 13, marginTop: 6 }}>Create your first job with the “+ New job” button above.</div>
+      </div>
+    );
+  }
+
+  // Phone layout: one card per job instead of the seven-column table.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {error && (
+          <div style={{ ...card, padding: '10px 14px', color: '#b85618', fontSize: 12.5, fontWeight: 600 }}>{error}</div>
+        )}
+        {jobs.map(job => {
+          const p = prog(job);
+          const m = statusMeta(job.status);
+          return (
+            <div key={job.id} style={{ ...card, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>{job.client}</div>
+                  <div style={{ fontSize: 12, color: '#8a7d70', marginTop: 2 }}>{job.address}</div>
+                  <div style={{ fontSize: 11.5, color: '#a1927f', marginTop: 4 }}>
+                    {job.employee}{job.time ? ` · ${job.time}` : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 'none' }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20,
+                    background: m.bg, color: m.fg, textTransform: 'uppercase',
+                  }}>{m.label}</span>
+                  <button onClick={() => remove(job)} title="Delete job" style={{
+                    border: 'none', background: 'transparent', color: '#c9b8a3',
+                    fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4,
+                  }}>×</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 11 }}>
+                <div style={{ flex: 1, height: 6, background: '#f0e7dc', borderRadius: 6, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: p.pct, background: '#d96b2b' }} />
+                </div>
+                <span style={{ fontSize: 11, color: '#a1927f' }}>{p.text}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -255,10 +302,11 @@ function InviteCodesCard() {
 
 export function TeamTab() {
   const { team } = useData();
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14 }}>
         {team.map(p => (
           <div key={p.id} style={{ ...card, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -312,6 +360,7 @@ function ItemPhoto({ path }) {
 
 export function ReviewTab() {
   const { jobs, approveJob, rejectJob } = useData();
+  const isMobile = useIsMobile();
   // Optimistic: hide a job the moment the manager acts; the realtime
   // refetch reconciles the real status shortly after.
   const [acted, setActed] = useState({});
@@ -364,8 +413,8 @@ export function ReviewTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {errorBanner}
       {reviewJobs.map(job => (
-        <div key={job.id} style={{ ...card, padding: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div key={job.id} style={{ ...card, padding: isMobile ? 14 : 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
             <div>
               <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 16 }}>{job.client}</div>
               <div style={{ fontSize: 12, color: '#8a7d70', marginTop: 2 }}>{job.address} · submitted by {job.employee}</div>
@@ -381,7 +430,7 @@ export function ReviewTab() {
               }}>Approve</button>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10 }}>
             {job.items.map(item => (
               <div key={item.id}>
                 <ItemPhoto path={item.photoPath} />
@@ -401,28 +450,30 @@ const hoursGrid = '1.4fr repeat(5,1fr) .9fr';
 
 export function HoursTab() {
   return (
-    <div style={{ ...card, overflow: 'hidden' }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '12px 18px',
-        background: '#faf7f2', borderBottom: '1px solid #ece5db',
-        fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
-      }}>
-        <div>Employee</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Total</div>
-      </div>
-      {timesheet.map(row => (
-        <div key={row.name} style={{
-          display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '14px 18px',
-          borderBottom: '1px solid #f4ede3', alignItems: 'center', fontSize: 13,
+    <div style={{ ...card, overflowX: 'auto' }}>
+      <div style={{ minWidth: 620 }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '12px 18px',
+          background: '#faf7f2', borderBottom: '1px solid #ece5db',
+          fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
         }}>
-          <div style={{ fontWeight: 600 }}>{row.name}</div>
-          <div style={{ color: '#8a7d70' }}>{row.mon}</div>
-          <div style={{ color: '#8a7d70' }}>{row.tue}</div>
-          <div style={{ color: '#8a7d70' }}>{row.wed}</div>
-          <div style={{ color: '#8a7d70' }}>{row.thu}</div>
-          <div style={{ color: '#8a7d70' }}>{row.fri}</div>
-          <div style={{ fontWeight: 800, fontFamily: franklin }}>{row.total}</div>
+          <div>Employee</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Total</div>
         </div>
-      ))}
+        {timesheet.map(row => (
+          <div key={row.name} style={{
+            display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '14px 18px',
+            borderBottom: '1px solid #f4ede3', alignItems: 'center', fontSize: 13,
+          }}>
+            <div style={{ fontWeight: 600 }}>{row.name}</div>
+            <div style={{ color: '#8a7d70' }}>{row.mon}</div>
+            <div style={{ color: '#8a7d70' }}>{row.tue}</div>
+            <div style={{ color: '#8a7d70' }}>{row.wed}</div>
+            <div style={{ color: '#8a7d70' }}>{row.thu}</div>
+            <div style={{ color: '#8a7d70' }}>{row.fri}</div>
+            <div style={{ fontWeight: 800, fontFamily: franklin }}>{row.total}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -430,8 +481,9 @@ export function HoursTab() {
 /* ── Clients (sample data) ─────────────────────────────────── */
 
 export function ClientsTab() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
       {clients.map(c => (
         <div key={c.name} style={{ ...card, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -454,7 +506,8 @@ const scheduleGrid = '1.4fr repeat(5,1fr)';
 
 export function ScheduleTab() {
   return (
-    <div style={{ ...card, overflow: 'hidden' }}>
+    <div style={{ ...card, overflowX: 'auto' }}>
+      <div style={{ minWidth: 640 }}>
       <div style={{
         display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
         background: '#faf7f2', borderBottom: '1px solid #ece5db',
@@ -484,6 +537,7 @@ export function ScheduleTab() {
           ))}
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -491,8 +545,9 @@ export function ScheduleTab() {
 /* ── Templates (sample data) ───────────────────────────────── */
 
 export function TemplatesTab() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
       {templates.map(t => (
         <div key={t.name} style={{ ...card, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
@@ -518,9 +573,10 @@ export function TemplatesTab() {
 /* ── Reports (sample data) ─────────────────────────────────── */
 
 export function ReportsTab() {
+  const isMobile = useIsMobile();
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14, marginBottom: 18 }}>
         {reportStats.map(s => (
           <div key={s.label} style={{ ...card, padding: 16 }}>
             <div style={{ fontSize: 11, color: '#a1927f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../DataContext.jsx';
+import useIsMobile from '../useIsMobile.js';
 
 const franklin = "'Libre Franklin',sans-serif";
 
@@ -20,6 +21,7 @@ function Field({ label, children }) {
 
 export default function NewJobModal({ onClose }) {
   const { team, createJob } = useData();
+  const isMobile = useIsMobile();
   const [clientName, setClientName] = useState('');
   const [address, setAddress] = useState('');
   const [timeLabel, setTimeLabel] = useState('');
@@ -80,7 +82,7 @@ export default function NewJobModal({ onClose }) {
             <input style={inputStyle} type="text" value={address}
               onChange={e => setAddress(e.target.value)} placeholder="120 River St, Suite 5" />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.4fr', gap: isMobile ? 0 : 12 }}>
             <Field label="Time">
               <input style={inputStyle} type="text" value={timeLabel}
                 onChange={e => setTimeLabel(e.target.value)} placeholder="9:00 AM" />

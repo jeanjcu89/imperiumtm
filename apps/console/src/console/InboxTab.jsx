@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { fetchMessages, sendMessage, clockLabel } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
+import useIsMobile from '../useIsMobile.js';
 
 const franklin = "'Libre Franklin',sans-serif";
 const card = { background: '#fff', border: '1px solid #ece5db', borderRadius: 14 };
@@ -19,9 +20,10 @@ export default function InboxTab() {
   const listRef = useRef(null);
 
   const threadId = selectedId ?? crew[0]?.id ?? null;
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!threadId) return;
+    if (!client || !threadId) return;
     let cancelled = false;
     fetchMessages(client, threadId).then(({ data, error: err }) => {
       if (cancelled) return;
@@ -64,31 +66,60 @@ export default function InboxTab() {
     );
   }
 
+  // Phone: crew picker becomes a horizontal chip row above the thread.
+  const threadList = isMobile ? (
+    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+      {crew.map(p => {
+        const on = p.id === threadId;
+        return (
+          <button key={p.id} onClick={() => setSelectedId(p.id)} style={{
+            display: 'flex', alignItems: 'center', gap: 7, flex: 'none',
+            border: on ? 'none' : '1px solid #ece5db', cursor: 'pointer',
+            borderRadius: 20, padding: '7px 13px 7px 8px',
+            background: on ? '#f6e0d0' : '#fff',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', background: '#f3e2d2', flex: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 700, color: '#b85618',
+            }}>{p.initials}</div>
+            <span style={{ fontSize: 12.5, fontWeight: on ? 700 : 500, color: on ? '#b85618' : '#2a211b', whiteSpace: 'nowrap' }}>{p.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  ) : (
+    <div style={{ ...card, padding: 10, alignSelf: 'start' }}>
+      {crew.map(p => {
+        const on = p.id === threadId;
+        return (
+          <button key={p.id} onClick={() => setSelectedId(p.id)} style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+            border: 'none', cursor: 'pointer', borderRadius: 10, padding: '9px 10px',
+            background: on ? '#f6e0d0' : 'transparent',
+          }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%', background: '#f3e2d2', flex: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700, color: '#b85618',
+            }}>{p.initials}</div>
+            <div style={{ fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? '#b85618' : '#2a211b' }}>{p.name}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, height: '100%', minHeight: 480 }}>
-      {/* thread list */}
-      <div style={{ ...card, padding: 10, alignSelf: 'start' }}>
-        {crew.map(p => {
-          const on = p.id === threadId;
-          return (
-            <button key={p.id} onClick={() => setSelectedId(p.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-              border: 'none', cursor: 'pointer', borderRadius: 10, padding: '9px 10px',
-              background: on ? '#f6e0d0' : 'transparent',
-            }}>
-              <div style={{
-                width: 34, height: 34, borderRadius: '50%', background: '#f3e2d2', flex: 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: '#b85618',
-              }}>{p.initials}</div>
-              <div style={{ fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? '#b85618' : '#2a211b' }}>{p.name}</div>
-            </button>
-          );
-        })}
-      </div>
+    <div style={{
+      display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr',
+      gridTemplateRows: isMobile ? 'auto 1fr' : undefined,
+      gap: isMobile ? 10 : 16, height: '100%', minHeight: isMobile ? 420 : 480,
+    }}>
+      {threadList}
 
       {/* thread */}
-      <div style={{ ...card, display: 'flex', flexDirection: 'column', minHeight: 480 }}>
+      <div style={{ ...card, display: 'flex', flexDirection: 'column', minHeight: isMobile ? 380 : 480 }}>
         <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.length === 0 && (
             <div style={{ fontSize: 12.5, color: '#a1927f' }}>No messages in this thread yet.</div>
