@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#efe9e0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#2a211b}
+  a{color:#d96b2b}a:hover{color:#b85618}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:34px 30px 60px;display:flex;flex-direction:column;gap:22px;align-items:center">
+
+  <div style="width:100%;max-width:1580px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:34px;height:34px;border-radius:9px;background:#d96b2b;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:18px;line-height:1">I</div>
+        <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:23px;letter-spacing:-.01em">Imperium <span style="color:#a1927f;font-weight:600">Task Manager</span></div>
+      </div>
+      <div style="margin-top:7px;font-size:13px;color:#8a7d70;max-width:640px;line-height:1.5">Field crew app + management backend for cleaning &amp; checklist operations. Everything is live — clock in, tick the checklist and attach photos on the phone, then watch it flow into the manager console.</div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:11px;color:#8a7d70;font-family:ui-monospace,Menlo,monospace">
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#c9922b;display:inline-block"></span>Awaiting review</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#4f8a5b;display:inline-block"></span>Approved</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#d96b2b;display:inline-block"></span>In progress</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:44px;align-items:center;width:100%">
+
+    <!-- ===================== EMPLOYEE MOBILE APP ===================== -->
+    <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <div style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#a1927f;text-transform:uppercase;letter-spacing:.14em">Employee app · iOS / Android — every screen, live &amp; in sync</div>
+      <div style="display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start">
+
+      <!-- PHONE 1 · HOME -->
+      <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:11px;font-family:ui-monospace,monospace;color:#b6a48f;font-weight:600">1 · Home &amp; schedule</div>
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+        <div style="height:100%;padding-top:52px;display:flex;flex-direction:column;background:#faf7f2;font-family:system-ui,sans-serif;color:#2a211b">
+          <div style="padding:12px 18px 14px;background:#fff;border-bottom:1px solid #ece5db;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:11px;color:#a1927f;font-weight:600">{{ dateStr }}</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:19px;line-height:1.1;margin-top:2px">Good morning, Maria</div></div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-weight:700;color:#b85618;font-size:14px">MS</div>
+          </div>
+          <div style="flex:1;overflow-y:auto">
+              <div style="padding:16px 16px 22px;display:flex;flex-direction:column;gap:16px">
+
+                <!-- clock card -->
+                <div style="border-radius:16px;padding:16px 16px 15px;background:{{ clock.bg }};color:{{ clock.fg }};box-shadow:0 6px 18px rgba(58,44,32,.10)">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <div>
+                      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.75;font-weight:600">{{ clock.status }}</div>
+                      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:32px;letter-spacing:-.02em;margin-top:3px">{{ clock.timeStr }}</div>
+                    </div>
+                    <div style="text-align:right;font-size:11px;opacity:.8;line-height:1.5">Today<br><span style="font-size:15px;font-weight:700">{{ clock.hoursToday }}</span></div>
+                  </div>
+                  <button onClick="{{ toggleClock }}" style="margin-top:14px;width:100%;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;background:{{ clock.btnBg }};color:{{ clock.btnFg }}">{{ clock.btnLabel }}</button>
+                </div>
+
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:16px">Today's jobs</div>
+                  <div style="font-size:12px;color:#a1927f;font-weight:600">{{ empJobCountLabel }}</div>
+                </div>
+
+                <sc-for list="{{ empJobs }}" as="job" hint-placeholder-count="3">
+                  <div onClick="{{ job.open }}" style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:14px;cursor:pointer;box-shadow:0 1px 2px rgba(58,44,32,.04)">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                      <div style="min-width:0">
+                        <div style="font-weight:700;font-size:15px;line-height:1.2">{{ job.client }}</div>
+                        <div style="font-size:12px;color:#8a7d70;margin-top:3px">{{ job.address }}</div>
+                      </div>
+                      <div style="flex:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:20px;background:{{ job.pillBg }};color:{{ job.pillFg }};text-transform:uppercase;letter-spacing:.04em">{{ job.statusLabel }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                      <div style="font-size:12px;font-weight:700;color:#3a2c20">{{ job.time }}</div>
+                      <div style="flex:1;height:6px;background:#f0e7dc;border-radius:6px;overflow:hidden"><div style="height:100%;width:{{ job.pct }};background:#d96b2b;border-radius:6px"></div></div>
+                      <div style="font-size:11px;color:#a1927f;font-weight:600">{{ job.progressText }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+          </div>
+          <div style="flex:none;display:flex;background:#fff;border-top:1px solid #ece5db;padding:8px 8px 6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#d96b2b"><span style="width:9px;height:9px;border-radius:50%;background:#d96b2b"></span><span style="font-size:10.5px;font-weight:700">Jobs</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Issues</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Chat</span></div>
+          </div>
+        </div>
+        </x-import>
+      </div>
+
+      <!-- PHONE 2 · JOB DETAIL -->
+      <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:11px;font-family:ui-monospace,monospace;color:#b6a48f;font-weight:600">2 · Job checklist + photo proof</div>
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+        <div style="height:100%;padding-top:52px;display:flex;flex-direction:column;background:#faf7f2;font-family:system-ui,sans-serif;color:#2a211b">
+          <div style="padding:12px 18px 14px;background:#fff;border-bottom:1px solid #ece5db;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:11px;color:#a1927f;font-weight:600">{{ dateStr }}</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:19px;line-height:1.1;margin-top:2px">Current job</div></div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-weight:700;color:#b85618;font-size:14px">MS</div>
+          </div>
+          <div style="flex:1;overflow-y:auto">
+              <div style="padding:14px 16px 26px">
+
+                <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:15px;margin-bottom:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                    <div>
+                      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:18px;line-height:1.15">{{ active.client }}</div>
+                      <div style="font-size:12px;color:#8a7d70;margin-top:4px">{{ active.address }} · {{ active.time }}</div>
+                    </div>
+                    <div style="flex:none;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;background:{{ active.pillBg }};color:{{ active.pillFg }};text-transform:uppercase">{{ active.statusLabel }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:13px">
+                    <div style="flex:1;height:7px;background:#f0e7dc;border-radius:6px;overflow:hidden"><div style="height:100%;width:{{ active.pct }};background:#d96b2b;border-radius:6px"></div></div>
+                    <div style="font-size:12px;color:#a1927f;font-weight:700">{{ active.progressText }}</div>
+                  </div>
+                </div>
+
+                <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:14px;margin:4px 2px 10px">Checklist · photo proof per item</div>
+
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ active.items }}" as="item" hint-placeholder-count="4">
+                    <div style="background:#fff;border:1px solid {{ item.border }};border-radius:13px;padding:12px 13px">
+                      <div style="display:flex;align-items:center;gap:11px">
+                        <button onClick="{{ item.toggle }}" style="flex:none;width:26px;height:26px;border-radius:8px;border:2px solid {{ item.boxBorder }};background:{{ item.boxBg }};color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">{{ item.check }}</button>
+                        <div style="flex:1;font-size:14px;font-weight:600;color:{{ item.labelColor }};text-decoration:{{ item.strike }}">{{ item.label }}</div>
+                      </div>
+                      <div style="margin-top:11px;margin-left:37px">
+                        <sc-if value="{{ item.hasPhoto }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:relative;border-radius:10px;overflow:hidden;height:96px;background-image:repeating-linear-gradient(135deg,#e9dccd 0 9px,#f3ebdf 9px 18px);border:1px solid #e4d6c4;display:flex;align-items:flex-end">
+                            <div style="width:100%;padding:6px 9px;background:linear-gradient(transparent,rgba(58,44,32,.55));display:flex;justify-content:space-between;align-items:center">
+                              <span style="color:#fff;font-size:10px;font-family:ui-monospace,monospace">photo · just now</span>
+                              <button onClick="{{ item.capture }}" style="border:none;background:rgba(255,255,255,.9);border-radius:6px;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;color:#3a2c20">Retake</button>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ item.noPhoto }}" hint-placeholder-val="{{ true }}">
+                          <button onClick="{{ item.capture }}" style="width:100%;border:1.5px dashed #d8c5ad;background:#fdfbf7;border-radius:10px;padding:12px;cursor:pointer;color:#b85618;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px"><span style="width:16px;height:13px;border:1.5px solid #b85618;border-radius:3px;position:relative;display:inline-block"></span>Add photo</button>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <button onClick="{{ submitActive }}" disabled="{{ active.submitDisabled }}" style="margin-top:18px;width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;background:{{ active.submitBg }};color:{{ active.submitFg }}">{{ active.submitLabel }}</button>
+              </div>
+          </div>
+          <div style="flex:none;display:flex;background:#fff;border-top:1px solid #ece5db;padding:8px 8px 6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#d96b2b"><span style="width:9px;height:9px;border-radius:50%;background:#d96b2b"></span><span style="font-size:10.5px;font-weight:700">Jobs</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Issues</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Chat</span></div>
+          </div>
+        </div>
+        </x-import>
+      </div>
+
+      <!-- PHONE 3 · ISSUES -->
+      <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:11px;font-family:ui-monospace,monospace;color:#b6a48f;font-weight:600">3 · Report an issue</div>
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+        <div style="height:100%;padding-top:52px;display:flex;flex-direction:column;background:#faf7f2;font-family:system-ui,sans-serif;color:#2a211b">
+          <div style="padding:12px 18px 14px;background:#fff;border-bottom:1px solid #ece5db;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:11px;color:#a1927f;font-weight:600">{{ dateStr }}</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:19px;line-height:1.1;margin-top:2px">Issues</div></div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-weight:700;color:#b85618;font-size:14px">MS</div>
+          </div>
+          <div style="flex:1;overflow-y:auto">
+              <div style="padding:16px 16px 26px">
+                <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:19px;margin-bottom:4px">Report an issue</div>
+                <div style="font-size:12px;color:#8a7d70;margin-bottom:14px">Flag anything blocking the job — missing supplies, access problems, damage.</div>
+                <textarea value="{{ issueText }}" onChange="{{ onIssueChange }}" placeholder="Describe the issue…" style="width:100%;height:96px;border:1px solid #ece5db;border-radius:12px;padding:12px;font-size:14px;font-family:system-ui;resize:none;background:#fff;color:#2a211b"></textarea>
+                <button onClick="{{ addIssue }}" style="margin-top:10px;width:100%;border:none;border-radius:11px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;background:#d96b2b;color:#fff">Send to manager</button>
+                <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:14px;margin:20px 2px 10px">Recent</div>
+                <div style="display:flex;flex-direction:column;gap:9px">
+                  <sc-for list="{{ issues }}" as="iss" hint-placeholder-count="2">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:12px;padding:12px">
+                      <div style="font-size:13px;color:#2a211b;line-height:1.4">{{ iss.text }}</div>
+                      <div style="font-size:10.5px;color:#a1927f;margin-top:6px;font-family:ui-monospace,monospace">{{ iss.meta }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+          </div>
+          <div style="flex:none;display:flex;background:#fff;border-top:1px solid #ece5db;padding:8px 8px 6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Jobs</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#d96b2b"><span style="width:9px;height:9px;border-radius:50%;background:#d96b2b"></span><span style="font-size:10.5px;font-weight:700">Issues</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Chat</span></div>
+          </div>
+        </div>
+        </x-import>
+      </div>
+
+      <!-- PHONE 4 · CHAT -->
+      <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:11px;font-family:ui-monospace,monospace;color:#b6a48f;font-weight:600">4 · Chat with dispatch</div>
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+        <div style="height:100%;padding-top:52px;display:flex;flex-direction:column;background:#faf7f2;font-family:system-ui,sans-serif;color:#2a211b">
+          <div style="padding:12px 18px 14px;background:#fff;border-bottom:1px solid #ece5db;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:11px;color:#a1927f;font-weight:600">{{ dateStr }}</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:19px;line-height:1.1;margin-top:2px">Messages</div></div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-weight:700;color:#b85618;font-size:14px">MS</div>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+              <div style="display:flex;flex-direction:column;height:100%">
+                <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
+                    <div style="align-self:{{ m.align }};max-width:78%">
+                      <div style="background:{{ m.bg }};color:{{ m.fg }};padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.4">{{ m.text }}</div>
+                      <div style="font-size:10px;color:#a1927f;margin-top:3px;text-align:{{ m.textAlign }};font-family:ui-monospace,monospace">{{ m.who }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="padding:11px 14px;border-top:1px solid #ece5db;background:#fff;display:flex;gap:9px;align-items:center">
+                  <input value="{{ msgText }}" onChange="{{ onMsgChange }}" placeholder="Message dispatch…" style="flex:1;border:1px solid #ece5db;border-radius:20px;padding:10px 14px;font-size:14px;font-family:system-ui;background:#faf7f2;color:#2a211b"/>
+                  <button onClick="{{ sendMsg }}" style="flex:none;width:40px;height:40px;border-radius:50%;border:none;background:#d96b2b;color:#fff;font-size:17px;cursor:pointer">↑</button>
+                </div>
+              </div>
+          </div>
+          <div style="flex:none;display:flex;background:#fff;border-top:1px solid #ece5db;padding:8px 8px 6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Jobs</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#a1927f"><span style="width:9px;height:9px;border-radius:50%;background:#d8c5ad"></span><span style="font-size:10.5px;font-weight:500">Issues</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;color:#d96b2b"><span style="width:9px;height:9px;border-radius:50%;background:#d96b2b"></span><span style="font-size:10.5px;font-weight:700">Chat</span></div>
+          </div>
+        </div>
+        </x-import>
+      </div>
+
+      </div>
+    </div>
+
+    <!-- ===================== MANAGER BACKEND ===================== -->
+    <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#a1927f;text-transform:uppercase;letter-spacing:.14em">Management console · Web</div>
+      <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="1080" height="760" url="app.imperium.io/{{ mgrUrl }}" hint-size="1080px,760px">
+
+        <div style="display:flex;height:100%;background:#faf7f2;font-family:system-ui,sans-serif;color:#2a211b">
+
+          <!-- sidebar -->
+          <div style="flex:none;width:220px;background:#3a2c20;color:#e8ddce;display:flex;flex-direction:column;padding:18px 14px">
+            <div style="display:flex;align-items:center;gap:9px;padding:2px 6px 18px">
+              <div style="width:30px;height:30px;border-radius:8px;background:#d96b2b;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:16px">I</div>
+              <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px;color:#fff">Imperium</div>
+            </div>
+            <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="7">
+              <button onClick="{{ nav.go }}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:none;cursor:pointer;border-radius:9px;padding:9px 11px;margin-bottom:2px;font-size:13.5px;font-weight:{{ nav.weight }};background:{{ nav.bg }};color:{{ nav.color }}">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ nav.dot }};flex:none"></span>
+                <span style="flex:1">{{ nav.label }}</span>
+                <sc-if value="{{ nav.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="background:#d96b2b;color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:1px 7px">{{ nav.badge }}</span></sc-if>
+              </button>
+            </sc-for>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)">
+              <div style="width:32px;height:32px;border-radius:50%;background:#5a4736;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#f3e2d2">DL</div>
+              <div style="line-height:1.2"><div style="font-size:12.5px;font-weight:600;color:#fff">Dana Lowe</div><div style="font-size:10.5px;color:#b6a48f">Operations lead</div></div>
+            </div>
+          </div>
+
+          <!-- main -->
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+            <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fff;border-bottom:1px solid #ece5db">
+              <div>
+                <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:20px;line-height:1.1">{{ mgrTitle }}</div>
+                <div style="font-size:12px;color:#a1927f;margin-top:2px">{{ mgrSub }}</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center">
+                <div style="border:1px solid #ece5db;border-radius:9px;padding:8px 12px;font-size:12.5px;color:#a1927f;background:#faf7f2;width:200px">Search jobs, staff…</div>
+                <button style="border:none;background:#d96b2b;color:#fff;font-weight:700;font-size:12.5px;border-radius:9px;padding:9px 15px;cursor:pointer">+ New job</button>
+              </div>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:22px 24px 30px">
+
+              <!-- DASHBOARD -->
+              <sc-if value="{{ tabDashboard }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+                  <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:16px">
+                      <div style="font-size:11px;color:#a1927f;font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ s.label }}</div>
+                      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:30px;margin-top:8px;color:{{ s.color }}">{{ s.value }}</div>
+                      <div style="font-size:11.5px;color:#8a7d70;margin-top:3px">{{ s.sub }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+                  <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:18px">
+                    <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px">Live job board</div>
+                    <div style="display:flex;flex-direction:column;gap:9px">
+                      <sc-for list="{{ mgrJobs }}" as="job" hint-placeholder-count="5">
+                        <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid #f0e7dc;border-radius:11px">
+                          <div style="width:8px;height:8px;border-radius:50%;background:{{ job.pillFg }};flex:none"></div>
+                          <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">{{ job.client }}</div><div style="font-size:11px;color:#a1927f">{{ job.employee }} · {{ job.time }}</div></div>
+                          <div style="width:90px;height:6px;background:#f0e7dc;border-radius:6px;overflow:hidden;flex:none"><div style="height:100%;width:{{ job.pct }};background:#d96b2b"></div></div>
+                          <div style="flex:none;width:92px;text-align:right;font-size:10.5px;font-weight:700;color:{{ job.pillFg }};text-transform:uppercase">{{ job.statusLabel }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:18px">
+                    <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px">Recent activity</div>
+                    <div style="display:flex;flex-direction:column;gap:14px">
+                      <sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+                        <div style="display:flex;gap:11px">
+                          <div style="width:7px;height:7px;border-radius:50%;background:{{ a.dot }};margin-top:5px;flex:none"></div>
+                          <div style="line-height:1.4"><span style="font-size:13px">{{ a.text }}</span><div style="font-size:10.5px;color:#a1927f;font-family:ui-monospace,monospace;margin-top:2px">{{ a.time }}</div></div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- JOBS -->
+              <sc-if value="{{ tabJobs }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;overflow:hidden">
+                  <div style="display:grid;grid-template-columns:1.5fr 1.6fr 1fr .8fr 1fr .9fr;gap:12px;padding:12px 18px;background:#faf7f2;border-bottom:1px solid #ece5db;font-size:11px;font-weight:700;color:#a1927f;text-transform:uppercase;letter-spacing:.05em">
+                    <div>Client</div><div>Location</div><div>Assigned</div><div>Time</div><div>Progress</div><div>Status</div>
+                  </div>
+                  <sc-for list="{{ mgrJobs }}" as="job" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:1.5fr 1.6fr 1fr .8fr 1fr .9fr;gap:12px;padding:14px 18px;border-bottom:1px solid #f4ede3;align-items:center;font-size:13px">
+                      <div style="font-weight:600">{{ job.client }}</div>
+                      <div style="color:#8a7d70;font-size:12px">{{ job.address }}</div>
+                      <div>{{ job.employee }}</div>
+                      <div style="color:#8a7d70;font-size:12px">{{ job.time }}</div>
+                      <div style="display:flex;align-items:center;gap:7px"><div style="flex:1;height:6px;background:#f0e7dc;border-radius:6px;overflow:hidden"><div style="height:100%;width:{{ job.pct }};background:#d96b2b"></div></div><span style="font-size:11px;color:#a1927f">{{ job.progressText }}</span></div>
+                      <div><span style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;background:{{ job.pillBg }};color:{{ job.pillFg }};text-transform:uppercase">{{ job.statusLabel }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- TEAM -->
+              <sc-if value="{{ tabTeam }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+                  <sc-for list="{{ team }}" as="p" hint-placeholder-count="6">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:16px">
+                      <div style="display:flex;align-items:center;gap:11px">
+                        <div style="width:44px;height:44px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-weight:700;color:#b85618">{{ p.initials }}</div>
+                        <div style="flex:1"><div style="font-weight:700;font-size:14.5px">{{ p.name }}</div><div style="font-size:11.5px;color:#a1927f">{{ p.role }}</div></div>
+                        <span style="width:9px;height:9px;border-radius:50%;background:{{ p.statusDot }}"></span>
+                      </div>
+                      <div style="display:flex;gap:8px;margin-top:14px">
+                        <div style="flex:1;background:#faf7f2;border-radius:9px;padding:9px"><div style="font-size:10.5px;color:#a1927f">Jobs today</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:18px">{{ p.jobsToday }}</div></div>
+                        <div style="flex:1;background:#faf7f2;border-radius:9px;padding:9px"><div style="font-size:10.5px;color:#a1927f">Hrs this wk</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:18px">{{ p.hoursWeek }}</div></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- REVIEW -->
+              <sc-if value="{{ tabReview }}" hint-placeholder-val="{{ false }}">
+                <sc-if value="{{ hasReviews }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:16px">
+                    <sc-for list="{{ reviewJobs }}" as="job" hint-placeholder-count="2">
+                      <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:18px">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+                          <div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:16px">{{ job.client }}</div><div style="font-size:12px;color:#8a7d70;margin-top:2px">{{ job.address }} · submitted by {{ job.employee }}</div></div>
+                          <div style="display:flex;gap:9px">
+                            <button onClick="{{ job.reject }}" style="border:1px solid #e0d3c2;background:#fff;color:#8a7d70;font-weight:700;font-size:12.5px;border-radius:9px;padding:9px 16px;cursor:pointer">Send back</button>
+                            <button onClick="{{ job.approve }}" style="border:none;background:#4f8a5b;color:#fff;font-weight:700;font-size:12.5px;border-radius:9px;padding:9px 18px;cursor:pointer">Approve</button>
+                          </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                          <sc-for list="{{ job.items }}" as="item" hint-placeholder-count="4">
+                            <div>
+                              <div style="height:92px;border-radius:10px;border:1px solid #e4d6c4;background-image:repeating-linear-gradient(135deg,#e9dccd 0 9px,#f3ebdf 9px 18px)"></div>
+                              <div style="font-size:11px;color:#8a7d70;margin-top:5px;line-height:1.3">{{ item.label }}</div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ noReviews }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:50px;text-align:center;color:#a1927f"><div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:16px;color:#2a211b">All caught up</div><div style="font-size:13px;margin-top:6px">No submissions waiting for review.</div></div>
+                </sc-if>
+              </sc-if>
+
+              <!-- HOURS -->
+              <sc-if value="{{ tabHours }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;overflow:hidden">
+                  <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr) .9fr;gap:8px;padding:12px 18px;background:#faf7f2;border-bottom:1px solid #ece5db;font-size:11px;font-weight:700;color:#a1927f;text-transform:uppercase;letter-spacing:.05em">
+                    <div>Employee</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Total</div>
+                  </div>
+                  <sc-for list="{{ timesheet }}" as="row" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr) .9fr;gap:8px;padding:14px 18px;border-bottom:1px solid #f4ede3;align-items:center;font-size:13px">
+                      <div style="font-weight:600">{{ row.name }}</div>
+                      <div style="color:#8a7d70">{{ row.mon }}</div><div style="color:#8a7d70">{{ row.tue }}</div><div style="color:#8a7d70">{{ row.wed }}</div><div style="color:#8a7d70">{{ row.thu }}</div><div style="color:#8a7d70">{{ row.fri }}</div>
+                      <div style="font-weight:800;font-family:'Libre Franklin',sans-serif">{{ row.total }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- CLIENTS -->
+              <sc-if value="{{ tabClients }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+                  <sc-for list="{{ clients }}" as="c" hint-placeholder-count="4">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:16px">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div><div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px">{{ c.name }}</div><div style="font-size:12px;color:#8a7d70;margin-top:3px">{{ c.locations }}</div></div>
+                        <div style="font-size:10.5px;color:#b85618;font-weight:700;background:#f3e2d2;padding:4px 9px;border-radius:20px">{{ c.freq }}</div>
+                      </div>
+                      <div style="margin-top:12px;font-size:12px;color:#8a7d70;line-height:1.5">{{ c.detail }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- SCHEDULE -->
+              <sc-if value="{{ tabSchedule }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;overflow:hidden">
+                  <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);gap:8px;padding:12px 18px;background:#faf7f2;border-bottom:1px solid #ece5db;font-size:11px;font-weight:700;color:#a1927f;text-transform:uppercase;letter-spacing:.05em">
+                    <div>Crew</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div>
+                  </div>
+                  <sc-for list="{{ schedule }}" as="row" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);gap:8px;padding:12px 18px;border-bottom:1px solid #f4ede3;align-items:center">
+                      <div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:50%;background:#f3e2d2;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#b85618;flex:none">{{ row.initials }}</div><span style="font-size:13px;font-weight:600">{{ row.name }}</span></div>
+                      <sc-for list="{{ row.days }}" as="d" hint-placeholder-count="5">
+                        <div style="min-height:36px;border-radius:8px;background:{{ d.bg }};color:{{ d.fg }};font-size:10.5px;font-weight:600;padding:7px 8px;display:flex;align-items:center;line-height:1.25">{{ d.label }}</div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- TEMPLATES -->
+              <sc-if value="{{ tabTemplates }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+                  <sc-for list="{{ templates }}" as="t" hint-placeholder-count="4">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:16px">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                        <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px">{{ t.name }}</div>
+                        <div style="flex:none;font-size:10.5px;color:#b85618;font-weight:700;background:#f3e2d2;padding:4px 9px;border-radius:20px">{{ t.count }}</div>
+                      </div>
+                      <div style="margin-top:10px;font-size:12.5px;color:#8a7d70;line-height:1.5">{{ t.items }}</div>
+                      <div style="margin-top:12px;display:flex;gap:18px;font-size:11px;color:#a1927f;border-top:1px solid #f4ede3;padding-top:11px">
+                        <div>Photos: <span style="color:#3a2c20;font-weight:600">{{ t.photos }}</span></div>
+                        <div>In use: <span style="color:#3a2c20;font-weight:600">{{ t.uses }}</span></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <div style="border:1.5px dashed #d8c5ad;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center;color:#b85618;font-weight:700;font-size:13px;cursor:pointer;min-height:120px;background:#fdfbf7">+ New checklist template</div>
+                </div>
+              </sc-if>
+
+              <!-- REPORTS -->
+              <sc-if value="{{ tabReports }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px">
+                  <sc-for list="{{ reportStats }}" as="s" hint-placeholder-count="3">
+                    <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:16px">
+                      <div style="font-size:11px;color:#a1927f;font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ s.label }}</div>
+                      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:28px;margin-top:8px">{{ s.value }}</div>
+                      <div style="font-size:11.5px;color:#4f8a5b;font-weight:600;margin-top:3px">{{ s.trend }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="background:#fff;border:1px solid #ece5db;border-radius:14px;padding:18px">
+                  <div style="font-family:'Libre Franklin',sans-serif;font-weight:700;font-size:15px;margin-bottom:16px">Jobs completed by week</div>
+                  <div style="display:flex;align-items:flex-end;gap:16px;height:170px;padding:0 6px">
+                    <sc-for list="{{ reportBars }}" as="b" hint-placeholder-count="6">
+                      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end">
+                        <div style="width:100%;max-width:46px;height:{{ b.h }};background:{{ b.color }};border-radius:7px 7px 0 0"></div>
+                        <div style="font-size:11px;color:#a1927f;font-family:ui-monospace,monospace">{{ b.label }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    empScreen: 'home',
+    activeId: 'j1',
+    mgrTab: 'dashboard',
+    clockedIn: false,
+    clockStart: null,
+    tick: 0,
+    issueText: '',
+    msgText: '',
+    issues: [
+      { text: 'Building 4 side door was locked — used loading dock instead.', meta: 'Yesterday · 4:12 PM' }
+    ],
+    messages: [
+      { text: 'Morning Maria — Northgate added a 3rd floor today.', who: 'Dispatch · 8:02 AM', mine: false },
+      { text: 'Got it, heading there after Riverside.', who: 'You · 8:05 AM', mine: true }
+    ],
+    jobs: [
+      { id: 'j1', client: 'Riverside Dental', address: '210 Riverside Dr, Suite 5', time: '9:00 AM', employee: 'Maria Santos', status: 'inprogress',
+        items: [ {id:'a',label:'Reception & waiting room',done:true,photo:true},{id:'b',label:'Restrooms sanitised',done:true,photo:true},{id:'c',label:'Treatment rooms wiped down',done:false,photo:false},{id:'d',label:'Floors mopped & bins emptied',done:false,photo:false} ] },
+      { id: 'j2', client: 'Northgate Offices', address: '88 Northgate Ave, Floors 2–3', time: '12:30 PM', employee: 'Maria Santos', status: 'todo',
+        items: [ {id:'a',label:'Kitchen & breakroom',done:false,photo:false},{id:'b',label:'Desks & surfaces',done:false,photo:false},{id:'c',label:'Restrooms sanitised',done:false,photo:false},{id:'d',label:'Vacuum common areas',done:false,photo:false} ] },
+      { id: 'j3', client: 'Bloom Café', address: '5 Market St', time: '4:00 PM', employee: 'Maria Santos', status: 'todo',
+        items: [ {id:'a',label:'Front of house & windows',done:false,photo:false},{id:'b',label:'Kitchen deep clean',done:false,photo:false},{id:'c',label:'Bins & recycling',done:false,photo:false} ] },
+      { id: 'j4', client: 'Harbor Law Group', address: '400 Bay St, 11th Floor', time: '10:00 AM', employee: 'James Okoro', status: 'submitted',
+        items: [ {id:'a',label:'Conference rooms',done:true,photo:true},{id:'b',label:'Kitchen & lounge',done:true,photo:true},{id:'c',label:'Restrooms sanitised',done:true,photo:true},{id:'d',label:'Reception floors',done:true,photo:true} ] },
+      { id: 'j5', client: 'Cedar Clinic', address: '77 Cedar Rd', time: '8:00 AM', employee: 'Priya Nair', status: 'approved',
+        items: [ {id:'a',label:'Exam rooms',done:true,photo:true},{id:'b',label:'Waiting area',done:true,photo:true},{id:'c',label:'Restrooms sanitised',done:true,photo:true} ] }
+    ]
+  };
+
+  componentDidMount(){ this._t = setInterval(()=>{ if(this.state.clockedIn) this.setState(s=>({tick:s.tick+1})); }, 1000); }
+  componentWillUnmount(){ clearInterval(this._t); }
+
+  statusMeta(s){
+    if(s==='approved') return {label:'Approved', bg:'#e2efe5', fg:'#4f8a5b'};
+    if(s==='submitted') return {label:'In review', bg:'#f7ecd3', fg:'#c9922b'};
+    if(s==='inprogress') return {label:'In progress', bg:'#f6e0d0', fg:'#d96b2b'};
+    return {label:'To do', bg:'#efe9e0', fg:'#8a7d70'};
+  }
+  prog(job){ const t=job.items.length; const d=job.items.filter(i=>i.done).length; return {d,t,pct:Math.round(d/t*100)+'%',text:d+'/'+t}; }
+
+  setJobs(fn){ this.setState(s=>({jobs:s.jobs.map(fn)})); }
+
+  toggleClock=()=>{ this.setState(s=> s.clockedIn ? {clockedIn:false} : {clockedIn:true, clockStart:Date.now()} ); };
+
+  renderVals(){
+    const S=this.state;
+    const me='Maria Santos';
+
+    // clock
+    let elapsed=0; if(S.clockedIn && S.clockStart) elapsed=Math.floor((Date.now()-S.clockStart)/1000);
+    const hh=String(Math.floor(elapsed/3600)).padStart(2,'0');
+    const mm=String(Math.floor(elapsed%3600/60)).padStart(2,'0');
+    const ss=String(elapsed%60).padStart(2,'0');
+    const clock = S.clockedIn
+      ? {status:'On the clock', timeStr:hh+':'+mm+':'+ss, hoursToday:'6.2 h', bg:'#3a2c20', fg:'#faf7f2', btnBg:'#d96b2b', btnFg:'#fff', btnLabel:'Clock out'}
+      : {status:'Clocked out', timeStr:'—', hoursToday:'6.2 h', bg:'#fff', fg:'#2a211b', btnBg:'#3a2c20', btnFg:'#fff', btnLabel:'Clock in'};
+    clock.bg = S.clockedIn ? '#3a2c20' : '#fff';
+
+    // employee jobs
+    const empJobs = S.jobs.filter(j=>j.employee===me).map(j=>{
+      const p=this.prog(j), m=this.statusMeta(j.status);
+      return {client:j.client,address:j.address,time:j.time,statusLabel:m.label,pillBg:m.bg,pillFg:m.fg,pct:p.pct,progressText:p.text,open:()=>this.setState({empScreen:'job',activeId:j.id})};
+    });
+
+    // active job
+    const aj = S.jobs.find(j=>j.id===S.activeId);
+    let active=null;
+    if(aj){
+      const p=this.prog(aj), m=this.statusMeta(aj.status);
+      const items=aj.items.map(it=>({
+        label:it.label,
+        check: it.done?'✓':'',
+        boxBg: it.done?'#d96b2b':'#fff',
+        boxBorder: it.done?'#d96b2b':'#d8c5ad',
+        labelColor: it.done?'#a1927f':'#2a211b',
+        strike: it.done?'line-through':'none',
+        border: it.done?'#f0e7dc':'#ece5db',
+        hasPhoto: it.photo, noPhoto: !it.photo,
+        toggle:()=>{ this.setJobs(j=> j.id!==aj.id?j:{...j,status:j.status==='todo'?'inprogress':j.status,items:j.items.map(x=>x.id===it.id?{...x,done:!x.done}:x)}); },
+        capture:()=>{ this.setJobs(j=> j.id!==aj.id?j:{...j,items:j.items.map(x=>x.id===it.id?{...x,photo:true}:x)}); }
+      }));
+      const allDone=aj.items.every(i=>i.done);
+      const submitted = aj.status==='submitted'||aj.status==='approved';
+      active={client:aj.client,address:aj.address,time:aj.time,statusLabel:m.label,pillBg:m.bg,pillFg:m.fg,pct:p.pct,progressText:p.text,items,
+        submitDisabled: submitted || !allDone,
+        submitBg: submitted?'#e2efe5':(allDone?'#4f8a5b':'#e6ded3'),
+        submitFg: submitted?'#4f8a5b':(allDone?'#fff':'#b6a48f'),
+        submitLabel: submitted?'Submitted for review':(allDone?'Submit completed job':'Complete all items to submit'),
+      };
+    }
+
+    // emp tabs
+    const mkTab=(key,label)=>{ const on=S.empScreen===key || (key==='home'&&S.empScreen==='job'); return {label,go:()=>this.setState({empScreen:key}),color:on?'#d96b2b':'#a1927f',dot:on?'#d96b2b':'#d8c5ad',weight:on?'700':'500'}; };
+    const empTabs=[mkTab('home','Jobs'),mkTab('issues','Issues'),mkTab('chat','Chat')];
+
+    // messages / issues
+    const messages=S.messages.map(m=>({text:m.text,who:m.who,align:m.mine?'flex-end':'flex-start',textAlign:m.mine?'right':'left',bg:m.mine?'#d96b2b':'#fff',fg:m.mine?'#fff':'#2a211b'}));
+    const issues=S.issues;
+
+    // ===== manager =====
+    const nav=[['dashboard','Dashboard'],['schedule','Schedule'],['jobs','Jobs'],['team','Team'],['review','Review'],['hours','Hours'],['clients','Clients'],['templates','Checklist templates'],['reports','Reports']];
+    const reviewCount=S.jobs.filter(j=>j.status==='submitted').length;
+    const navItems=nav.map(([key,label])=>{ const on=S.mgrTab===key; return {label,go:()=>this.setState({mgrTab:key}),bg:on?'#4a3928':'transparent',color:on?'#fff':'#c9b8a3',dot:on?'#d96b2b':'#6b5642',weight:on?'700':'500',hasBadge:key==='review'&&reviewCount>0,badge:String(reviewCount)}; });
+
+    const mgrJobs=S.jobs.map(j=>{ const p=this.prog(j),m=this.statusMeta(j.status); return {client:j.client,address:j.address,employee:j.employee,time:j.time,statusLabel:m.label,pillBg:m.bg,pillFg:m.fg,pct:p.pct,progressText:p.text}; });
+
+    const activeCount=S.jobs.filter(j=>j.status==='inprogress'||j.status==='todo').length;
+    const approvedCount=S.jobs.filter(j=>j.status==='approved').length;
+    const stats=[
+      {label:'Active jobs',value:String(activeCount),sub:'across 3 crew',color:'#d96b2b'},
+      {label:'Completed today',value:String(approvedCount),sub:'approved',color:'#4f8a5b'},
+      {label:'Pending review',value:String(reviewCount),sub:'need approval',color:'#c9922b'},
+      {label:'Hours logged',value:'27.4',sub:'this week',color:'#3a2c20'}
+    ];
+    const activity=[
+      {text:'James Okoro submitted Harbor Law Group', time:'2 min ago', dot:'#c9922b'},
+      {text:'Maria clocked in at Riverside Dental', time:'18 min ago', dot:'#d96b2b'},
+      {text:'Cedar Clinic approved by you', time:'1 hr ago', dot:'#4f8a5b'},
+      {text:'New issue reported at Building 4', time:'Yesterday', dot:'#a1927f'},
+      {text:'Priya Nair started shift', time:'Yesterday', dot:'#a1927f'}
+    ];
+    const team=[
+      {name:'Maria Santos',role:'Senior cleaner',initials:'MS',statusDot:'#4f8a5b',jobsToday:'3',hoursWeek:'31'},
+      {name:'James Okoro',role:'Cleaner',initials:'JO',statusDot:'#4f8a5b',jobsToday:'2',hoursWeek:'28'},
+      {name:'Priya Nair',role:'Cleaner',initials:'PN',statusDot:'#c9922b',jobsToday:'2',hoursWeek:'24'},
+      {name:'Diego Alvarez',role:'Cleaner',initials:'DA',statusDot:'#d8c5ad',jobsToday:'0',hoursWeek:'19'},
+      {name:'Sana Malik',role:'Team lead',initials:'SM',statusDot:'#4f8a5b',jobsToday:'1',hoursWeek:'26'},
+      {name:'Tom Reed',role:'Cleaner',initials:'TR',statusDot:'#d8c5ad',jobsToday:'0',hoursWeek:'22'}
+    ];
+    const reviewJobs=S.jobs.filter(j=>j.status==='submitted').map(j=>({client:j.client,address:j.address,employee:j.employee,items:j.items,
+      approve:()=>this.setJobs(x=>x.id===j.id?{...x,status:'approved'}:x),
+      reject:()=>this.setJobs(x=>x.id===j.id?{...x,status:'inprogress',items:x.items.map(i=>({...i,done:false}))}:x)}));
+    const timesheet=[
+      {name:'Maria Santos',mon:'6.2',tue:'7.0',wed:'6.5',thu:'6.8',fri:'4.5',total:'31.0'},
+      {name:'James Okoro',mon:'5.5',tue:'6.0',wed:'6.0',thu:'5.5',fri:'5.0',total:'28.0'},
+      {name:'Priya Nair',mon:'4.0',tue:'5.5',wed:'5.0',thu:'5.0',fri:'4.5',total:'24.0'},
+      {name:'Sana Malik',mon:'5.0',tue:'5.5',wed:'5.5',thu:'5.0',fri:'5.0',total:'26.0'},
+      {name:'Diego Alvarez',mon:'4.0',tue:'4.0',wed:'3.5',thu:'4.0',fri:'3.5',total:'19.0'}
+    ];
+    const clients=[
+      {name:'Riverside Dental',locations:'1 location · Suite 5',freq:'Daily',detail:'Medical-grade sanitising checklist. Access via reception, alarm code on file.'},
+      {name:'Northgate Offices',locations:'3 floors · Northgate Ave',freq:'3× / week',detail:'After-hours only. Floors 2–3 active; floor 1 under renovation.'},
+      {name:'Bloom Café',locations:'1 location · Market St',freq:'Daily',detail:'Post-close kitchen deep clean. Keyholder: Maria S.'},
+      {name:'Harbor Law Group',locations:'1 location · 11th floor',freq:'2× / week',detail:'Confidential — no photos of desks/documents, common areas only.'}
+    ];
+    const reportStats=[
+      {label:'On-time completion',value:'96%',trend:'▲ 4% vs last month'},
+      {label:'Photo compliance',value:'92%',trend:'▲ 7% vs last month'},
+      {label:'Avg job duration',value:'1.8 h',trend:'▼ 12 min faster'}
+    ];
+    const rb=[['W1',60],['W2',80],['W3',52],['W4',95],['W5',72],['W6',100]];
+    const reportBars=rb.map(([label,pct],i)=>({label,h:pct+'%',color:i===5?'#d96b2b':'#e6c3a3'}));
+
+    const chip=(label)=> label?{label,bg:'#f6e0d0',fg:'#b85618'}:{label:'—',bg:'#faf7f2',fg:'#c9b8a3'};
+    const schedule=[
+      {name:'Maria Santos',initials:'MS',days:[chip('Riverside · 9a'),chip('Northgate · 12p'),chip('Bloom · 4p'),chip('Riverside · 9a'),chip('Northgate · 12p')]},
+      {name:'James Okoro',initials:'JO',days:[chip('Harbor Law · 10a'),chip(''),chip('Harbor Law · 10a'),chip('Cedar · 8a'),chip('Harbor Law · 10a')]},
+      {name:'Priya Nair',initials:'PN',days:[chip('Cedar · 8a'),chip('Cedar · 8a'),chip(''),chip(''),chip('Cedar · 8a')]},
+      {name:'Sana Malik',initials:'SM',days:[chip(''),chip('Bloom · 4p'),chip('Northgate · 12p'),chip(''),chip('')]},
+      {name:'Diego Alvarez',initials:'DA',days:[chip(''),chip(''),chip(''),chip(''),chip('')]}
+    ];
+    const templates=[
+      {name:'Standard office',count:'6 tasks',items:'Desks & surfaces · restrooms · kitchen/breakroom · vacuum common areas · bins · glass',photos:'Photo per item',uses:'Northgate, Harbor Law'},
+      {name:'Medical / clinic',count:'8 tasks',items:'Exam rooms · sanitising · biohazard waste · waiting area · restrooms · reception · floors · sign-off',photos:'Photo + sign-off',uses:'Riverside Dental, Cedar Clinic'},
+      {name:'Food service',count:'7 tasks',items:'Front of house · kitchen deep clean · windows · bins & recycling · floors · restrooms · surfaces',photos:'Photo per item',uses:'Bloom Café'},
+      {name:'Post-construction',count:'10 tasks',items:'Dust removal · windows & tracks · fixtures · floors · debris · vents · detailing',photos:'Before / after',uses:'—'}
+    ];
+    const tabTitles={dashboard:['Dashboard','Live view of today\u2019s operations'],schedule:['Schedule','This week \u00b7 crew assignments'],jobs:['Jobs & checklists','Assign work and track progress'],team:['Team','Roster, status and workload'],review:['Photo review','Approve submitted work'],hours:['Hours & timesheets','This week \u00b7 Mon\u2013Fri'],clients:['Clients & locations','Sites and their checklists'],templates:['Checklist templates','Reusable task lists by service type'],reports:['Reports','Performance analytics']};
+    const tt=tabTitles[S.mgrTab];
+
+    return {
+      dateStr: new Date(2026,6,8).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}),
+      empHeading: S.empScreen==='issues'?'Issues':S.empScreen==='chat'?'Messages':'Good morning, Maria',
+      isHome:S.empScreen==='home', isJob:S.empScreen==='job', isIssues:S.empScreen==='issues', isChat:S.empScreen==='chat',
+      clock, empJobs, empJobCountLabel: empJobs.length+' assigned',
+      active, hasActive: !!active,
+      backHome:()=>this.setState({empScreen:'home'}),
+      submitActive:()=>{ if(aj) this.setJobs(j=>j.id===aj.id?{...j,status:'submitted'}:j); this.setState({empScreen:'home'}); },
+      toggleClock:this.toggleClock,
+      issues, issueText:S.issueText,
+      onIssueChange:(e)=>this.setState({issueText:e.target.value}),
+      addIssue:()=>{ const t=S.issueText.trim(); if(!t)return; this.setState(s=>({issues:[{text:t,meta:'Just now'},...s.issues],issueText:''})); },
+      messages, msgText:S.msgText,
+      onMsgChange:(e)=>this.setState({msgText:e.target.value}),
+      sendMsg:()=>{ const t=S.msgText.trim(); if(!t)return; this.setState(s=>({messages:[...s.messages,{text:t,who:'You · now',mine:true}],msgText:''})); },
+      empTabs,
+      // manager
+      mgrUrl:S.mgrTab, mgrTitle:tt[0], mgrSub:tt[1],
+      tabDashboard:S.mgrTab==='dashboard',tabSchedule:S.mgrTab==='schedule',tabJobs:S.mgrTab==='jobs',tabTeam:S.mgrTab==='team',tabReview:S.mgrTab==='review',tabHours:S.mgrTab==='hours',tabClients:S.mgrTab==='clients',tabTemplates:S.mgrTab==='templates',tabReports:S.mgrTab==='reports',
+      navItems, mgrJobs, stats, activity, team,
+      reviewJobs, hasReviews:reviewJobs.length>0, noReviews:reviewJobs.length===0,
+      timesheet, clients, reportStats, reportBars, schedule, templates
+    };
+  }
+}
+</script>
+</body>
+</html>

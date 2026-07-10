@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#1b140e;font-family:system-ui,sans-serif}
+  a{color:#d96b2b}
+  @media print{
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    *,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}
+  }
+</style>
+<script>
+  addEventListener('load',()=>{(async()=>{
+    const stage=document.querySelector('deck-stage');
+    const mark=()=>{document.querySelectorAll('deck-stage > section, deck-stage section[data-label]').forEach(s=>s.setAttribute('data-deck-active',''));};
+    mark();setTimeout(mark,800);
+    try{await document.fonts.ready;}catch(e){}
+    const imgs=Array.from(document.images).filter(i=>!i.complete);
+    await Promise.race([Promise.allSettled(imgs.map(i=>i.decode())),new Promise(r=>setTimeout(r,8000))]);
+    setTimeout(()=>window.print(),700);
+  })();});
+</script>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <!-- TITLE -->
+  <section data-label="Title" data-speaker-notes="Imperium Task Manager — a two-part system: a mobile app for field crews and a web console for managers. This deck walks through every screen." style="width:100%;height:100%;box-sizing:border-box;background:#3a2c20;color:#faf7f2;display:flex;flex-direction:column;justify-content:center;padding:130px 150px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:center;gap:22px;margin-bottom:54px">
+      <div style="width:78px;height:78px;border-radius:20px;background:#d96b2b;display:flex;align-items:center;justify-content:center;font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:44px;color:#fff">I</div>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:20px;letter-spacing:.28em;text-transform:uppercase;color:#c9b8a3">Product walkthrough</div>
+    </div>
+    <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:118px;line-height:1;letter-spacing:-.02em">Imperium<br>Task Manager</div>
+    <div style="font-size:32px;color:#c9b8a3;margin-top:40px;max-width:1080px;line-height:1.5">Task, checklist &amp; hours tracking for cleaning crews — a field app for employees and a management console for the office. Every screen, explained.</div>
+    <div style="margin-top:70px;font-family:ui-monospace,monospace;font-size:18px;color:#8a7566;letter-spacing:.06em">4 mobile screens · 9 console views · one live data model</div>
+  </section>
+
+  <!-- EMPLOYEE DIVIDER -->
+  <section data-label="Employee app" data-speaker-notes="Part one: what the cleaner carries into the field." style="width:100%;height:100%;box-sizing:border-box;background:#d96b2b;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:130px 150px;font-family:system-ui,sans-serif">
+    <div style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:.3em;text-transform:uppercase;color:#ffe3d0;margin-bottom:30px">Part 01</div>
+    <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:132px;line-height:.98;letter-spacing:-.02em">The employee app</div>
+    <div style="font-size:30px;color:#ffe3d0;margin-top:36px;max-width:1000px;line-height:1.5">iOS &amp; Android. Clock in, work the checklist, prove it with photos, and stay in touch — all from the job site.</div>
+  </section>
+
+  <!-- MOBILE 1 -->
+  <section data-label="Home" data-speaker-notes="The home screen: live clock-in timer, hours today, and the run of assigned jobs each with address, time and a progress bar." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;align-items:center;gap:96px;padding:90px 130px;font-family:system-ui,sans-serif">
+    <div style="flex:none;width:470px;display:flex;justify-content:center"><img src="assets/phone1.png" style="height:800px;width:auto;border-radius:34px;filter:drop-shadow(0 34px 70px rgba(58,44,32,.26))"></div>
+    <div style="flex:1">
+      <div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618;margin-bottom:26px">Employee app · 01</div>
+      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:74px;line-height:1.02;margin-bottom:30px">Home &amp; schedule</div>
+      <div style="font-size:29px;line-height:1.55;color:#5c5045;max-width:820px;margin-bottom:38px">Everything the cleaner sees first. A live clock-in timer tracks hours on the job, and the day's jobs are listed with client, address, arrival time and a progress bar for each.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px">
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Clock in / out</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Today's jobs</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Live progress</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOBILE 2 -->
+  <section data-label="Job checklist" data-speaker-notes="Tap into a job to work the checklist. Each task is ticked off and backed by a required photo. Submit only unlocks when every item is done." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;align-items:center;gap:96px;padding:90px 130px;font-family:system-ui,sans-serif">
+    <div style="flex:none;width:470px;display:flex;justify-content:center"><img src="assets/phone2.png" style="height:800px;width:auto;border-radius:34px;filter:drop-shadow(0 34px 70px rgba(58,44,32,.26))"></div>
+    <div style="flex:1">
+      <div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618;margin-bottom:26px">Employee app · 02</div>
+      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:74px;line-height:1.02;margin-bottom:30px">Checklist + photo proof</div>
+      <div style="font-size:29px;line-height:1.55;color:#5c5045;max-width:820px;margin-bottom:38px">The heart of the app. Every task is ticked off and backed by a photo — proof the work was actually done. The Submit button only unlocks once every item is complete.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px">
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Photo per item</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Retake anytime</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Gated submit</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOBILE 3 -->
+  <section data-label="Issues" data-speaker-notes="Flag blockers from the field — locked doors, missing supplies, damage — straight to dispatch, with a running history." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;align-items:center;gap:96px;padding:90px 130px;font-family:system-ui,sans-serif">
+    <div style="flex:none;width:470px;display:flex;justify-content:center"><img src="assets/phone3.png" style="height:800px;width:auto;border-radius:34px;filter:drop-shadow(0 34px 70px rgba(58,44,32,.26))"></div>
+    <div style="flex:1">
+      <div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618;margin-bottom:26px">Employee app · 03</div>
+      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:74px;line-height:1.02;margin-bottom:30px">Report an issue</div>
+      <div style="font-size:29px;line-height:1.55;color:#5c5045;max-width:820px;margin-bottom:38px">Blockers happen on site — a locked door, missing supplies, damage to report. Crews flag them straight to dispatch and keep a running history of what was raised.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px">
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">One-tap report</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Straight to office</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">History log</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOBILE 4 -->
+  <section data-label="Chat" data-speaker-notes="Two-way messaging with the office for last-minute changes and questions." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;align-items:center;gap:96px;padding:90px 130px;font-family:system-ui,sans-serif">
+    <div style="flex:none;width:470px;display:flex;justify-content:center"><img src="assets/phone4.png" style="height:800px;width:auto;border-radius:34px;filter:drop-shadow(0 34px 70px rgba(58,44,32,.26))"></div>
+    <div style="flex:1">
+      <div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618;margin-bottom:26px">Employee app · 04</div>
+      <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:74px;line-height:1.02;margin-bottom:30px">Chat with dispatch</div>
+      <div style="font-size:29px;line-height:1.55;color:#5c5045;max-width:820px;margin-bottom:38px">Two-way messaging with the office for last-minute route changes, questions and quick confirmations — no separate app or phone number needed.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px">
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Direct to dispatch</div>
+        <div style="background:#fff;border:1px solid #ece5db;border-radius:999px;padding:12px 22px;font-size:20px;font-weight:600;color:#3a2c20">Real-time</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSOLE DIVIDER -->
+  <section data-label="Management console" data-speaker-notes="Part two: what the office sees. Everything the crew does on the phone flows here live." style="width:100%;height:100%;box-sizing:border-box;background:#3a2c20;color:#faf7f2;display:flex;flex-direction:column;justify-content:center;padding:130px 150px;font-family:system-ui,sans-serif">
+    <div style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:.3em;text-transform:uppercase;color:#e6a77e;margin-bottom:30px">Part 02</div>
+    <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:132px;line-height:.98;letter-spacing:-.02em">The management<br>console</div>
+    <div style="font-size:30px;color:#c9b8a3;margin-top:36px;max-width:1040px;line-height:1.5">A browser-based backend for the office. Everything the crew does on the phone flows here in real time — assign, track, review and report.</div>
+  </section>
+
+  <!-- ADMIN 1 -->
+  <section data-label="Dashboard" data-speaker-notes="The morning command center: active jobs, completed today, submissions pending review and hours logged, plus a live job board and activity feed." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 01</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Dashboard</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin1.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">The morning command center. Active jobs, work completed today, submissions waiting for review and hours logged — over a <b style="color:#2a211b">live job board</b> and rolling <b style="color:#2a211b">activity feed</b>.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 2 -->
+  <section data-label="Schedule" data-speaker-notes="Weekly crew board — who is where Monday to Friday, with gaps and overloads visible at a glance." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 02</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Schedule</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin2.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">A weekly crew board. See who's assigned where <b style="color:#2a211b">Monday through Friday</b>, and spot open days or overloaded staff at a glance before the week starts.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 3 -->
+  <section data-label="Jobs" data-speaker-notes="Every job in one table: client, location, assignee, time, live progress and status." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 03</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Jobs &amp; checklists</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin3.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">Every job in one table — <b style="color:#2a211b">client, location, assignee, time</b>, live progress and status — so nothing slips between assignment and sign-off.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 4 -->
+  <section data-label="Team" data-speaker-notes="Roster with online status, jobs today and hours this week per employee." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 04</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Team</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin4.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">The roster at a glance — <b style="color:#2a211b">who's online</b>, how many jobs they have today and hours worked this week, per employee.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 5 -->
+  <section data-label="Review" data-speaker-notes="Approve or send back submitted work. Every checklist item's proof photo in one grid; approving closes the job." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 05</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Photo review</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin5.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">The quality gate. Every submitted job's proof photos land in one grid — <b style="color:#2a211b">approve</b> to close it out, or <b style="color:#2a211b">send back</b> for rework.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 6 -->
+  <section data-label="Hours" data-speaker-notes="Mon–Fri hours per employee with weekly totals — ready for payroll." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 06</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Hours &amp; timesheets</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin6.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">Clock-in data rolls straight into timesheets — <b style="color:#2a211b">Mon–Fri hours</b> per employee with weekly totals, ready to hand to payroll.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 7 -->
+  <section data-label="Clients" data-speaker-notes="Sites, visit frequency and site-specific access notes and rules." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 07</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Clients &amp; locations</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin7.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">Each site with its visit <b style="color:#2a211b">frequency</b> and the <b style="color:#2a211b">access notes and rules</b> crews need — alarm codes, keyholders, confidentiality limits.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 8 -->
+  <section data-label="Templates" data-speaker-notes="Reusable task lists by service type so new jobs inherit the right checklist and photo rules." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 08</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Checklist templates</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin8.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">Reusable task lists by service type — <b style="color:#2a211b">office, medical, food service, post-construction</b> — so a new job inherits the right checklist and photo rules instantly. This is what makes the app work beyond cleaning.</div>
+    </div>
+  </section>
+
+  <!-- ADMIN 9 -->
+  <section data-label="Reports" data-speaker-notes="Performance analytics: on-time completion, photo compliance, average job duration and completion trend." style="width:100%;height:100%;box-sizing:border-box;background:#faf7f2;color:#2a211b;display:flex;flex-direction:column;padding:78px 120px 70px;font-family:system-ui,sans-serif">
+    <div style="display:flex;align-items:baseline;gap:22px;margin-bottom:34px"><div style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:.22em;text-transform:uppercase;color:#b85618">Console · 09</div><div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:60px;line-height:1">Reports</div></div>
+    <div style="display:flex;gap:70px;flex:1;min-height:0;align-items:center">
+      <div style="flex:none;width:1080px"><img src="assets/admin9.png" style="width:100%;height:auto;border-radius:16px;border:1px solid #e4dccf;filter:drop-shadow(0 26px 54px rgba(58,44,32,.20))"></div>
+      <div style="flex:1;font-size:29px;line-height:1.6;color:#5c5045">The numbers that matter — <b style="color:#2a211b">on-time completion, photo compliance, average job duration</b> and the week-over-week completion trend.</div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section data-label="Close" data-speaker-notes="One system, field to office. Note: Imperium is a working placeholder name." style="width:100%;height:100%;box-sizing:border-box;background:#3a2c20;color:#faf7f2;display:flex;flex-direction:column;justify-content:center;padding:130px 150px;font-family:system-ui,sans-serif">
+    <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:104px;line-height:1.02;letter-spacing:-.02em;max-width:1300px">One system,<br>field to office.</div>
+    <div style="font-size:30px;color:#c9b8a3;margin-top:40px;max-width:1000px;line-height:1.5">Cleaning today — and any team running checklists and shifts tomorrow. Photo-verified work, live hours, and templates that adapt to the trade.</div>
+    <div style="margin-top:64px;font-family:ui-monospace,monospace;font-size:18px;color:#8a7566;letter-spacing:.06em">“Imperium” is a working placeholder — ready to swap for your brand.</div>
+  </section>
+
+</x-import>
+</x-dc>
+</body>
+</html>
