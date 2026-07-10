@@ -1,0 +1,10 @@
+{
+  "name": "@imperium/shared",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "main": "src/index.js",
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.110.2"
+  }
+}

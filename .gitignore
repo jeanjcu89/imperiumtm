@@ -4,4 +4,6 @@ dist/
 .env.local
 .env.*.local
 npm-debug.log*
+.expo/
+apps/field/.env
 Cleaning task tracking app-handoff.zip

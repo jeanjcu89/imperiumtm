@@ -1,0 +1,14 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #efe9e0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #2a211b;
+}
+a { color: #d96b2b; }
+a:hover { color: #b85618; }
+button, input, textarea, select { font-family: inherit; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .18); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }

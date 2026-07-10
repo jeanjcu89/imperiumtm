@@ -1,20 +1,16 @@
 {
-  "name": "imperium-task-manager",
+  "name": "imperiumtm",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
+  "version": "0.2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.110.2",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.5.0",
-    "vite": "^6.3.5"
+    "dev:console": "npm run dev -w @imperium/console",
+    "dev:storyboard": "npm run dev -w @imperium/storyboard",
+    "build:console": "npm run build -w @imperium/console",
+    "build:storyboard": "npm run build -w @imperium/storyboard",
+    "field": "npm run start -w @imperium/field"
   }
 }

@@ -2,10 +2,16 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "imperium-dev",
+      "name": "console-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["run", "dev:console"],
       "port": 5173
+    },
+    {
+      "name": "storyboard-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:storyboard"],
+      "port": 5174
     }
   ]
 }
