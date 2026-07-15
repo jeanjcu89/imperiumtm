@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { initials } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
@@ -33,6 +33,13 @@ const NAV_ENTRIES = navEntries.flatMap(e =>
 const TAB_TITLES = {
   ...tabTitles,
   inbox: ['Inbox', 'Chat threads with your crew'],
+};
+
+// Persist the active tab in the URL hash so a reload (or back/forward) keeps
+// the manager where they were instead of snapping back to the dashboard.
+const tabFromHash = () => {
+  const key = window.location.hash.replace(/^#\/?/, '');
+  return TAB_VIEWS[key] ? key : 'dashboard';
 };
 
 function Sidebar({ tab, setTab, onNavigate }) {
@@ -103,10 +110,22 @@ function Sidebar({ tab, setTab, onNavigate }) {
 export default function ConsoleShell() {
   const { ready } = useData();
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTabState] = useState(tabFromHash);
   // null = closed; an object (possibly empty) = open, carrying modal prefill.
   const [newJob, setNewJob] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Writing the hash keeps the tab through a refresh; the hashchange listener
+  // keeps state in sync when the browser back/forward buttons move the hash.
+  const setTab = (key) => {
+    if (window.location.hash.replace(/^#\/?/, '') !== key) window.location.hash = key;
+    setTabState(key);
+  };
+  useEffect(() => {
+    const onHashChange = () => setTabState(tabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const [title, sub] = TAB_TITLES[tab];
   const View = TAB_VIEWS[tab];
