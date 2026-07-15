@@ -19,7 +19,7 @@ packages/
   shared/       the one data layer both apps use (Supabase client, queries,
                 photos, realtime, auth helpers)
 supabase/
-  migrations/   SQL — run 20260711000000_v2_multitenant.sql on your project
+  migrations/   SQL — run in order: v2_multitenant then v3_clients_templates
 netlify.toml    builds apps/console
 ```
 
@@ -36,9 +36,12 @@ netlify.toml    builds apps/console
 
 ## Setup
 
-1. **Database** — in the Supabase SQL editor, run
-   [supabase/migrations/20260711000000_v2_multitenant.sql](supabase/migrations/20260711000000_v2_multitenant.sql).
-   ⚠️ It replaces the old v1 demo tables (drops them and their data).
+1. **Database** — in the Supabase SQL editor, run these in order:
+   1. [20260711000000_v2_multitenant.sql](supabase/migrations/20260711000000_v2_multitenant.sql)
+      — ⚠️ replaces the old v1 demo tables (drops them and their data).
+   2. [20260715000000_v3_clients_templates_schedule.sql](supabase/migrations/20260715000000_v3_clients_templates_schedule.sql)
+      — adds clients, checklist templates and scheduling. Additive and
+      re-runnable; it never touches live job/crew data.
 2. **Auth setting** — Supabase → Authentication → Sign In / Providers → Email:
    for frictionless testing turn **Confirm email off** (or leave it on — both
    apps show a "check your email" notice after signup).
@@ -73,10 +76,24 @@ Netlify builds the console from `netlify.toml` on every push to `main`
 `VITE_SUPABASE_ANON_KEY` must be set in Site configuration → Environment
 variables.
 
-## Current v1 scope
+## Current scope
+
+Everything in the console now runs on live Supabase data — no sample data left.
 
 Live end-to-end: company signup, invite codes, crew clock in/out, jobs +
 checklists, **real photo proof** (camera → Supabase Storage → manager review),
-submit → approve / send back, issues, chat. The console's Schedule, Hours,
-Clients, Templates and Reports tabs still show sample data — they're the next
-build-out candidates.
+submit → approve / send back, issues, chat.
+
+The **v3** build-out (see the migration above) makes the last five tabs real:
+
+- **Clients** — a client book with full CRUD; jobs can link to a client.
+- **Templates** — reusable checklist templates; the New Job modal can start
+  from one.
+- **Schedule** — a live week grid of jobs by crew and day; click an empty cell
+  to create a job pre-filled with that person and date.
+- **Hours** — weekly timesheets aggregated from real clock in/out entries.
+- **Reports** — approvals, photo compliance and hours logged, derived from
+  live jobs and time entries.
+
+Next candidates: surfacing scheduled dates and templates in the field app, and
+exportable reports.

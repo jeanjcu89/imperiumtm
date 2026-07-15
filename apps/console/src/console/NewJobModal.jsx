@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ymd } from '@imperium/shared';
 import { useData } from '../DataContext.jsx';
 import useIsMobile from '../useIsMobile.js';
 
@@ -19,31 +20,49 @@ function Field({ label, children }) {
   );
 }
 
-export default function NewJobModal({ onClose }) {
-  const { team, createJob } = useData();
+// `prefill` may carry { assigneeId, scheduledDate } (e.g. from a Schedule cell).
+export default function NewJobModal({ onClose, prefill = {} }) {
+  const { team, clients, templates, createJob } = useData();
   const isMobile = useIsMobile();
+  const [clientSel, setClientSel] = useState('');   // '' = enter a new client
   const [clientName, setClientName] = useState('');
   const [address, setAddress] = useState('');
   const [timeLabel, setTimeLabel] = useState('');
-  const [assigneeId, setAssigneeId] = useState('');
+  const [assigneeId, setAssigneeId] = useState(prefill.assigneeId ?? '');
+  const [scheduledDate, setScheduledDate] = useState(prefill.scheduledDate ?? ymd(new Date()));
+  const [templateSel, setTemplateSel] = useState('');
   const [itemsText, setItemsText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // A job needs an assignee and at least one checklist item, otherwise it
+  const selectedClient = clients.find(c => c.id === clientSel);
+  const usingExisting = !!selectedClient;
+  const effClientName = usingExisting ? selectedClient.name : clientName.trim();
+  const effAddress = usingExisting ? selectedClient.address : address.trim();
+
+  const applyTemplate = (id) => {
+    setTemplateSel(id);
+    const t = templates.find(x => x.id === id);
+    if (t) setItemsText(t.items.map(i => i.label).join('\n'));
+  };
+
+  // A job needs a client, an assignee and at least one checklist item, else it
   // can never appear in anyone's field app or be completed.
   const itemLabels = itemsText.split('\n').map(s => s.trim()).filter(Boolean);
-  const canSubmit = clientName.trim().length > 0 && assigneeId && itemLabels.length > 0 && !submitting;
+  const canSubmit = effClientName.length > 0 && assigneeId && itemLabels.length > 0 && !submitting;
 
   const submit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true); setError('');
     const { error: err } = await createJob({
-      clientName: clientName.trim(),
-      address: address.trim(),
+      clientName: effClientName,
+      clientId: usingExisting ? selectedClient.id : null,
+      address: effAddress,
       timeLabel: timeLabel.trim(),
       assigneeId: assigneeId || null,
+      scheduledDate: scheduledDate || null,
+      templateId: templateSel || null,
       itemLabels,
     });
     if (err) { setError(err.message); setSubmitting(false); return; }
@@ -74,31 +93,65 @@ export default function NewJobModal({ onClose }) {
         </div>
 
         <form onSubmit={submit}>
-          <Field label="Client name">
-            <input style={inputStyle} type="text" value={clientName} autoFocus
-              onChange={e => setClientName(e.target.value)} placeholder="Riverside Dental" />
+          <Field label="Client">
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={clientSel} autoFocus
+              onChange={e => setClientSel(e.target.value)}>
+              <option value="">+ New client…</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </Field>
-          <Field label="Address">
-            <input style={inputStyle} type="text" value={address}
-              onChange={e => setAddress(e.target.value)} placeholder="120 River St, Suite 5" />
-          </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.4fr', gap: isMobile ? 0 : 12 }}>
+          {usingExisting ? (
+            selectedClient.address ? (
+              <div style={{ fontSize: 12, color: '#8a7d70', margin: '-4px 0 12px' }}>{selectedClient.address}</div>
+            ) : null
+          ) : (
+            <>
+              <Field label="Client name">
+                <input style={inputStyle} type="text" value={clientName}
+                  onChange={e => setClientName(e.target.value)} placeholder="Riverside Dental" />
+              </Field>
+              <Field label="Address">
+                <input style={inputStyle} type="text" value={address}
+                  onChange={e => setAddress(e.target.value)} placeholder="120 River St, Suite 5" />
+              </Field>
+            </>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 0 : 12 }}>
+            <Field label="Date">
+              <input style={inputStyle} type="date" value={scheduledDate}
+                onChange={e => setScheduledDate(e.target.value)} />
+            </Field>
             <Field label="Time">
               <input style={inputStyle} type="text" value={timeLabel}
                 onChange={e => setTimeLabel(e.target.value)} placeholder="9:00 AM" />
             </Field>
-            <Field label="Assignee">
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={assigneeId}
-                onChange={e => setAssigneeId(e.target.value)}>
-                <option value="">Choose a person…</option>
-                {team.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}{p.role === 'manager' ? ' (manager)' : ''}
-                  </option>
+          </div>
+          <Field label="Assignee">
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={assigneeId}
+              onChange={e => setAssigneeId(e.target.value)}>
+              <option value="">Choose a person…</option>
+              {team.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}{p.role === 'manager' ? ' (manager)' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {templates.length > 0 && (
+            <Field label="Start from a template (optional)">
+              <select style={{ ...inputStyle, cursor: 'pointer' }} value={templateSel}
+                onChange={e => applyTemplate(e.target.value)}>
+                <option value="">No template</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} · {t.items.length} task{t.items.length === 1 ? '' : 's'}</option>
                 ))}
               </select>
             </Field>
-          </div>
+          )}
           <Field label="Checklist — one item per line">
             <textarea style={{ ...inputStyle, minHeight: 110, resize: 'vertical', lineHeight: 1.5 }}
               value={itemsText} onChange={e => setItemsText(e.target.value)}

@@ -1,12 +1,69 @@
-import React, { useEffect, useState } from 'react';
-import { statusMeta, prog, timeMeta, getPhotoUrl } from '@imperium/shared';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  statusMeta, prog, timeMeta, getPhotoUrl, initials,
+  ymd, startOfWeek, addDays, entryHours,
+} from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
 import useIsMobile from '../useIsMobile.js';
-import { timesheet, clients, reportStats, reportBars, schedule, templates } from './sampleData.js';
+import ClientModal from './ClientModal.jsx';
+import TemplateModal from './TemplateModal.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
 const card = { background: '#fff', border: '1px solid #ece5db', borderRadius: 14 };
+
+/* ── week navigation (Hours & Schedule) ────────────────────────────── */
+
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Returns the Monday-anchored week for the current offset plus controls.
+// `minOffset` clamps how far back you can page — Hours passes it so you can't
+// scroll past the fetched time-entry window and see a false "no hours" week.
+function useWeek({ minOffset = -Infinity } = {}) {
+  const [offset, setOffset] = useState(0);
+  const monday = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
+  const days = useMemo(() => DAY_NAMES.map((name, i) => {
+    const date = addDays(monday, i);
+    return { name, date, key: ymd(date) };
+  }), [monday]);
+  const label = offset === 0
+    ? 'This week'
+    : `${addDays(monday, 0).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${addDays(monday, 6).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  return {
+    days, label, offset, atMin: offset <= minOffset,
+    prev: () => setOffset(o => Math.max(minOffset, o - 1)),
+    next: () => setOffset(o => o + 1),
+    reset: () => setOffset(0),
+  };
+}
+
+function WeekNav({ label, offset, atMin, onPrev, onNext, onReset }) {
+  const btn = {
+    border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+    fontWeight: 700, fontSize: 13, borderRadius: 8, width: 30, height: 30,
+    lineHeight: 1,
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      <button onClick={onPrev} disabled={atMin} style={{ ...btn, cursor: atMin ? 'default' : 'pointer', opacity: atMin ? 0.4 : 1 }} aria-label="Previous week">‹</button>
+      <button onClick={onNext} style={{ ...btn, cursor: 'pointer' }} aria-label="Next week">›</button>
+      <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 14 }}>{label}</div>
+      {offset !== 0 && (
+        <button onClick={onReset} style={{
+          border: 'none', background: 'transparent', color: '#b85618',
+          fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: '4px 6px',
+        }}>Today</button>
+      )}
+    </div>
+  );
+}
+
+const emptyState = (title, sub) => (
+  <div style={{ ...card, padding: 50, textAlign: 'center', color: '#a1927f' }}>
+    <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 16, color: '#2a211b' }}>{title}</div>
+    <div style={{ fontSize: 13, marginTop: 6 }}>{sub}</div>
+  </div>
+);
 
 /* ── Dashboard (live) ──────────────────────────────────────── */
 
@@ -444,153 +501,382 @@ export function ReviewTab() {
   );
 }
 
-/* ── Hours (sample data) ───────────────────────────────────── */
+/* ── Hours (live: aggregated from time entries) ────────────── */
 
-const hoursGrid = '1.4fr repeat(5,1fr) .9fr';
+const hoursGrid = '1.4fr repeat(7,1fr) .9fr';
+const fmtHours = h => h > 0 ? h.toFixed(1) : '—';
 
 export function HoursTab() {
+  const { team, timeEntries } = useData();
+  // DataContext fetches six weeks of entries; don't let the manager page past
+  // that window and misread an unfetched week as "no hours".
+  const { days, ...week } = useWeek({ minOffset: -6 });
+
+  // Attribute each entry's hours to the local weekday of its clock-in.
+  // rows: employeeId → { [dayKey]: hours }
+  const byEmployee = useMemo(() => {
+    const acc = {};
+    const dayKeys = new Set(days.map(d => d.key));
+    for (const e of timeEntries) {
+      const key = ymd(new Date(e.clockIn));
+      if (!dayKeys.has(key)) continue;
+      (acc[e.employeeId] ??= {});
+      acc[e.employeeId][key] = (acc[e.employeeId][key] ?? 0) + entryHours(e);
+    }
+    return acc;
+  }, [timeEntries, days]);
+
+  const rows = team
+    .map(p => {
+      const perDay = byEmployee[p.id] ?? {};
+      const total = days.reduce((s, d) => s + (perDay[d.key] ?? 0), 0);
+      return { id: p.id, name: p.name, perDay, total };
+    })
+    .filter(r => r.total > 0)
+    .sort((a, b) => b.total - a.total);
+
   return (
-    <div style={{ ...card, overflowX: 'auto' }}>
-      <div style={{ minWidth: 620 }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '12px 18px',
-          background: '#faf7f2', borderBottom: '1px solid #ece5db',
-          fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
-        }}>
-          <div>Employee</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Total</div>
-        </div>
-        {timesheet.map(row => (
-          <div key={row.name} style={{
-            display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '14px 18px',
-            borderBottom: '1px solid #f4ede3', alignItems: 'center', fontSize: 13,
-          }}>
-            <div style={{ fontWeight: 600 }}>{row.name}</div>
-            <div style={{ color: '#8a7d70' }}>{row.mon}</div>
-            <div style={{ color: '#8a7d70' }}>{row.tue}</div>
-            <div style={{ color: '#8a7d70' }}>{row.wed}</div>
-            <div style={{ color: '#8a7d70' }}>{row.thu}</div>
-            <div style={{ color: '#8a7d70' }}>{row.fri}</div>
-            <div style={{ fontWeight: 800, fontFamily: franklin }}>{row.total}</div>
+    <>
+      <WeekNav label={week.label} offset={week.offset} atMin={week.atMin} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
+      {rows.length === 0
+        ? emptyState('No hours this week', 'Crew hours appear here once they clock in and out from the field app.')
+        : (
+          <div style={{ ...card, overflowX: 'auto' }}>
+            <div style={{ minWidth: 760 }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '12px 18px',
+                background: '#faf7f2', borderBottom: '1px solid #ece5db',
+                fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
+              }}>
+                <div>Employee</div>
+                {days.map(d => <div key={d.key}>{d.name}</div>)}
+                <div>Total</div>
+              </div>
+              {rows.map(row => (
+                <div key={row.id} style={{
+                  display: 'grid', gridTemplateColumns: hoursGrid, gap: 8, padding: '14px 18px',
+                  borderBottom: '1px solid #f4ede3', alignItems: 'center', fontSize: 13,
+                }}>
+                  <div style={{ fontWeight: 600 }}>{row.name}</div>
+                  {days.map(d => (
+                    <div key={d.key} style={{ color: '#8a7d70' }}>{fmtHours(row.perDay[d.key] ?? 0)}</div>
+                  ))}
+                  <div style={{ fontWeight: 800, fontFamily: franklin }}>{row.total.toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
+        )}
+    </>
   );
 }
 
-/* ── Clients (sample data) ─────────────────────────────────── */
+/* ── Clients (live CRUD) ───────────────────────────────────── */
+
+const addCard = (label, onClick) => (
+  <div onClick={onClick} style={{
+    border: '1.5px dashed #d8c5ad', borderRadius: 14, padding: 16,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#b85618', fontWeight: 700, fontSize: 13, cursor: 'pointer', minHeight: 120, background: '#fdfbf7',
+  }}>{label}</div>
+);
 
 export function ClientsTab() {
+  const { clients, deleteClient, jobs } = useData();
   const isMobile = useIsMobile();
+  const [modal, setModal] = useState(null); // null | { client } | {} (add)
+  const [error, setError] = useState('');
+
+  const jobCount = (clientId) => jobs.filter(j => j.clientId === clientId).length;
+
+  const remove = async (c) => {
+    if (!window.confirm(`Delete "${c.name}"? Its jobs stay, but they'll no longer be linked to this client.`)) return;
+    setError('');
+    const { error: err } = (await deleteClient(c.id)) ?? {};
+    if (err) setError(`Could not delete — ${err.message}`);
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
-      {clients.map(c => (
-        <div key={c.name} style={{ ...card, padding: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: '#8a7d70', marginTop: 3 }}>{c.locations}</div>
+    <>
+      {error && (
+        <div style={{ ...card, padding: '10px 14px', marginBottom: 12, color: '#b85618', fontSize: 12.5, fontWeight: 600 }}>{error}</div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
+        {clients.map(c => {
+          const count = jobCount(c.id);
+          return (
+            <div key={c.id} style={{ ...card, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15 }}>{c.name}</div>
+                  {c.address && <div style={{ fontSize: 12, color: '#8a7d70', marginTop: 3 }}>{c.address}</div>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+                  {c.frequency && (
+                    <span style={{ fontSize: 10.5, color: '#b85618', fontWeight: 700, background: '#f3e2d2', padding: '4px 9px', borderRadius: 20 }}>{c.frequency}</span>
+                  )}
+                </div>
+              </div>
+              {c.notes && <div style={{ marginTop: 12, fontSize: 12, color: '#8a7d70', lineHeight: 1.5 }}>{c.notes}</div>}
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f4ede3', paddingTop: 11 }}>
+                <span style={{ fontSize: 11, color: '#a1927f' }}>
+                  {count === 0 ? 'No jobs yet' : `${count} job${count === 1 ? '' : 's'}`}
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setModal({ client: c })} style={{
+                    border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+                    fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px', cursor: 'pointer',
+                  }}>Edit</button>
+                  <button onClick={() => remove(c)} style={{
+                    border: '1px solid #e7d3c0', background: '#fff', color: '#b85618',
+                    fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px', cursor: 'pointer',
+                  }}>Delete</button>
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 10.5, color: '#b85618', fontWeight: 700, background: '#f3e2d2', padding: '4px 9px', borderRadius: 20 }}>{c.freq}</div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: 12, color: '#8a7d70', lineHeight: 1.5 }}>{c.detail}</div>
-        </div>
-      ))}
-    </div>
+          );
+        })}
+        {addCard('+ New client', () => setModal({}))}
+      </div>
+      {modal && <ClientModal client={modal.client} onClose={() => setModal(null)} />}
+    </>
   );
 }
 
-/* ── Schedule (sample data) ────────────────────────────────── */
+/* ── Schedule (live: jobs by crew × day) ───────────────────── */
 
-const scheduleGrid = '1.4fr repeat(5,1fr)';
+const scheduleGrid = '1.4fr repeat(7,1fr)';
+const UNASSIGNED = '__unassigned__';
 
-export function ScheduleTab() {
+export function ScheduleTab({ openNewJob }) {
+  const { jobs, team } = useData();
+  const { days, ...week } = useWeek();
+
+  const dayKeys = useMemo(() => new Set(days.map(d => d.key)), [days]);
+
+  // group[assigneeId][dayKey] = [job, …]
+  const group = useMemo(() => {
+    const g = {};
+    for (const j of jobs) {
+      if (!j.scheduledDate || !dayKeys.has(j.scheduledDate)) continue;
+      const who = j.assigneeId ?? UNASSIGNED;
+      ((g[who] ??= {})[j.scheduledDate] ??= []).push(j);
+    }
+    return g;
+  }, [jobs, dayKeys]);
+
+  // Rows: every crew member, plus anyone else with a job this week, plus an
+  // Unassigned row when scheduled jobs have no assignee.
+  const rows = useMemo(() => {
+    const scheduled = new Set(Object.keys(group));
+    const list = team
+      .filter(p => p.role === 'crew' || scheduled.has(p.id))
+      .map(p => ({ id: p.id, name: p.name, initials: p.initials }));
+    if (scheduled.has(UNASSIGNED)) list.push({ id: UNASSIGNED, name: 'Unassigned', initials: '—' });
+    return list;
+  }, [team, group]);
+
+  const cellStatusBg = (status) => statusMeta(status).bg;
+  const cellStatusFg = (status) => statusMeta(status).fg;
+
   return (
-    <div style={{ ...card, overflowX: 'auto' }}>
-      <div style={{ minWidth: 640 }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
-        background: '#faf7f2', borderBottom: '1px solid #ece5db',
-        fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
-      }}>
-        <div>Crew</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div>
-      </div>
-      {schedule.map(row => (
-        <div key={row.name} style={{
-          display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
-          borderBottom: '1px solid #f4ede3', alignItems: 'center',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%', background: '#f3e2d2',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#b85618', flex: 'none',
-            }}>{row.initials}</div>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{row.name}</span>
+    <>
+      <WeekNav label={week.label} offset={week.offset} atMin={week.atMin} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
+      {rows.length === 0
+        ? emptyState('No crew yet', 'Invite crew from the Team tab, then schedule their jobs here or with “+ New job”.')
+        : (
+          <div style={{ ...card, overflowX: 'auto' }}>
+            <div style={{ minWidth: 860 }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
+                background: '#faf7f2', borderBottom: '1px solid #ece5db',
+                fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
+              }}>
+                <div>Crew</div>
+                {days.map(d => <div key={d.key}>{d.name} {d.date.getDate()}</div>)}
+              </div>
+              {rows.map(row => (
+                <div key={row.id} style={{
+                  display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
+                  borderBottom: '1px solid #f4ede3', alignItems: 'stretch',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <div style={{
+                      width: 30, height: 30, borderRadius: '50%', background: '#f3e2d2',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, fontWeight: 700, color: '#b85618', flex: 'none',
+                    }}>{row.initials}</div>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{row.name}</span>
+                  </div>
+                  {days.map(d => {
+                    const cell = group[row.id]?.[d.key] ?? [];
+                    if (cell.length === 0) {
+                      const assignable = row.id !== UNASSIGNED;
+                      return (
+                        <div key={d.key}
+                          onClick={assignable && openNewJob ? () => openNewJob({ assigneeId: row.id, scheduledDate: d.key }) : undefined}
+                          style={{
+                            minHeight: 40, borderRadius: 8, background: '#faf7f2',
+                            border: '1px dashed #ece1d2', cursor: assignable && openNewJob ? 'pointer' : 'default',
+                          }} />
+                      );
+                    }
+                    return (
+                      <div key={d.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {cell.map(j => (
+                          <div key={j.id} style={{
+                            borderRadius: 8, background: cellStatusBg(j.status), color: cellStatusFg(j.status),
+                            fontSize: 10.5, fontWeight: 600, padding: '7px 8px', lineHeight: 1.25,
+                          }}>{j.client}{j.time ? ` · ${j.time}` : ''}</div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-          {row.days.map((d, i) => (
-            <div key={i} style={{
-              minHeight: 36, borderRadius: 8, background: d.bg, color: d.fg,
-              fontSize: 10.5, fontWeight: 600, padding: '7px 8px',
-              display: 'flex', alignItems: 'center', lineHeight: 1.25,
-            }}>{d.label}</div>
-          ))}
-        </div>
-      ))}
-      </div>
-    </div>
+        )}
+    </>
   );
 }
 
-/* ── Templates (sample data) ───────────────────────────────── */
+/* ── Templates (live CRUD) ─────────────────────────────────── */
 
 export function TemplatesTab() {
+  const { templates, deleteTemplate, jobs } = useData();
   const isMobile = useIsMobile();
+  const [modal, setModal] = useState(null); // null | { template } | {} (add)
+  const [error, setError] = useState('');
+
+  const useCount = (templateId) => jobs.filter(j => j.templateId === templateId).length;
+
+  const remove = async (t) => {
+    if (!window.confirm(`Delete the "${t.name}" template? Jobs already created from it keep their checklists.`)) return;
+    setError('');
+    const { error: err } = (await deleteTemplate(t.id)) ?? {};
+    if (err) setError(`Could not delete — ${err.message}`);
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
-      {templates.map(t => (
-        <div key={t.name} style={{ ...card, padding: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-            <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15 }}>{t.name}</div>
-            <div style={{ flex: 'none', fontSize: 10.5, color: '#b85618', fontWeight: 700, background: '#f3e2d2', padding: '4px 9px', borderRadius: 20 }}>{t.count}</div>
-          </div>
-          <div style={{ marginTop: 10, fontSize: 12.5, color: '#8a7d70', lineHeight: 1.5 }}>{t.items}</div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 18, fontSize: 11, color: '#a1927f', borderTop: '1px solid #f4ede3', paddingTop: 11 }}>
-            <div>Photos: <span style={{ color: '#3a2c20', fontWeight: 600 }}>{t.photos}</span></div>
-            <div>In use: <span style={{ color: '#3a2c20', fontWeight: 600 }}>{t.uses}</span></div>
-          </div>
-        </div>
-      ))}
-      <div style={{
-        border: '1.5px dashed #d8c5ad', borderRadius: 14, padding: 16,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#b85618', fontWeight: 700, fontSize: 13, cursor: 'pointer', minHeight: 120, background: '#fdfbf7',
-      }}>+ New checklist template</div>
-    </div>
+    <>
+      {error && (
+        <div style={{ ...card, padding: '10px 14px', marginBottom: 12, color: '#b85618', fontSize: 12.5, fontWeight: 600 }}>{error}</div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: isMobile ? 10 : 14 }}>
+        {templates.map(t => {
+          const count = useCount(t.id);
+          return (
+            <div key={t.id} style={{ ...card, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15 }}>{t.name}</div>
+                <div style={{ flex: 'none', fontSize: 10.5, color: '#b85618', fontWeight: 700, background: '#f3e2d2', padding: '4px 9px', borderRadius: 20 }}>
+                  {t.items.length} task{t.items.length === 1 ? '' : 's'}
+                </div>
+              </div>
+              <div style={{ marginTop: 10, fontSize: 12.5, color: '#8a7d70', lineHeight: 1.5 }}>
+                {t.items.map(i => i.label).join(' · ') || 'No tasks yet'}
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11, color: '#a1927f', borderTop: '1px solid #f4ede3', paddingTop: 11 }}>
+                <div style={{ display: 'flex', gap: 18 }}>
+                  {t.photoPolicy && <div>Photos: <span style={{ color: '#3a2c20', fontWeight: 600 }}>{t.photoPolicy}</span></div>}
+                  <div>In use: <span style={{ color: '#3a2c20', fontWeight: 600 }}>{count} job{count === 1 ? '' : 's'}</span></div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
+                  <button onClick={() => setModal({ template: t })} style={{
+                    border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+                    fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px', cursor: 'pointer',
+                  }}>Edit</button>
+                  <button onClick={() => remove(t)} style={{
+                    border: '1px solid #e7d3c0', background: '#fff', color: '#b85618',
+                    fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px', cursor: 'pointer',
+                  }}>Delete</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {addCard('+ New checklist template', () => setModal({}))}
+      </div>
+      {modal && <TemplateModal template={modal.template} onClose={() => setModal(null)} />}
+    </>
   );
 }
 
-/* ── Reports (sample data) ─────────────────────────────────── */
+/* ── Reports (live: derived from jobs & time entries) ──────── */
 
 export function ReportsTab() {
+  const { jobs, timeEntries } = useData();
   const isMobile = useIsMobile();
+
+  const { stats, bars } = useMemo(() => {
+    const thisMonday = startOfWeek(new Date());
+    const weekStart = thisMonday.getTime();
+    const weekEnd = addDays(thisMonday, 7).getTime();
+    const lastStart = addDays(thisMonday, -7).getTime();
+
+    const approvedAt = j => j.approvedAt ? new Date(j.approvedAt).getTime() : null;
+    const inRange = (t, a, b) => t != null && t >= a && t < b;
+
+    const approvedThisWeek = jobs.filter(j => inRange(approvedAt(j), weekStart, weekEnd)).length;
+    const approvedLastWeek = jobs.filter(j => inRange(approvedAt(j), lastStart, weekStart)).length;
+    const delta = approvedThisWeek - approvedLastWeek;
+    const approvedTrend = approvedLastWeek === 0
+      ? (approvedThisWeek > 0 ? 'First approvals this week' : 'No approvals last week')
+      : `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)} vs last week`;
+
+    // Photo compliance: share of completed items that carry a photo.
+    const doneItems = jobs.flatMap(j => j.items).filter(i => i.done);
+    const withPhoto = doneItems.filter(i => i.photoPath).length;
+    const compliance = doneItems.length === 0 ? null : Math.round(withPhoto / doneItems.length * 100);
+
+    // Hours logged this week (open entries count up to now).
+    const hoursThisWeek = timeEntries
+      .filter(e => { const t = new Date(e.clockIn).getTime(); return t >= weekStart && t < weekEnd; })
+      .reduce((s, e) => s + entryHours(e), 0);
+
+    const stats = [
+      { label: 'Approved this week', value: String(approvedThisWeek), trend: approvedTrend, up: delta >= 0 },
+      { label: 'Photo compliance', value: compliance == null ? '—' : `${compliance}%`, trend: `${withPhoto}/${doneItems.length} items with a photo`, up: true },
+      { label: 'Hours logged', value: hoursThisWeek > 0 ? `${hoursThisWeek.toFixed(1)} h` : '—', trend: 'this week', up: true },
+    ];
+
+    // Jobs approved per week, last 6 weeks.
+    const buckets = [];
+    for (let w = 5; w >= 0; w--) {
+      const start = addDays(thisMonday, -7 * w);
+      const end = addDays(start, 7);
+      const count = jobs.filter(j => inRange(approvedAt(j), start.getTime(), end.getTime())).length;
+      buckets.push({ label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), count, current: w === 0 });
+    }
+    const max = Math.max(1, ...buckets.map(b => b.count));
+    const bars = buckets.map(b => ({
+      ...b,
+      h: `${Math.round(b.count / max * 100)}%`,
+      color: b.current ? '#d96b2b' : '#e6c3a3',
+    }));
+
+    return { stats, bars };
+  }, [jobs, timeEntries]);
+
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14, marginBottom: 18 }}>
-        {reportStats.map(s => (
+        {stats.map(s => (
           <div key={s.label} style={{ ...card, padding: 16 }}>
             <div style={{ fontSize: 11, color: '#a1927f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
             <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 28, marginTop: 8 }}>{s.value}</div>
-            <div style={{ fontSize: 11.5, color: '#4f8a5b', fontWeight: 600, marginTop: 3 }}>{s.trend}</div>
+            <div style={{ fontSize: 11.5, color: s.up ? '#4f8a5b' : '#b85618', fontWeight: 600, marginTop: 3 }}>{s.trend}</div>
           </div>
         ))}
       </div>
       <div style={{ ...card, padding: 18 }}>
-        <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Jobs completed by week</div>
+        <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Jobs approved by week</div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, height: 170, padding: '0 6px' }}>
-          {reportBars.map(b => (
+          {bars.map(b => (
             <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ width: '100%', maxWidth: 46, height: b.h, background: b.color, borderRadius: '7px 7px 0 0' }} />
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8a7d70' }}>{b.count > 0 ? b.count : ''}</div>
+              <div style={{ width: '100%', maxWidth: 46, height: b.h, minHeight: b.count > 0 ? 4 : 0, background: b.color, borderRadius: '7px 7px 0 0' }} />
               <div style={{ fontSize: 11, color: '#a1927f', fontFamily: 'ui-monospace,monospace' }}>{b.label}</div>
             </div>
           ))}

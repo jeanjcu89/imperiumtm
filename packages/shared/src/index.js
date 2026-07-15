@@ -53,6 +53,48 @@ export function clockLabel(ts) {
 export const initials = (name) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
 
+/* ── week / date helpers (local time; match SQL `date` columns) ──── */
+
+// Local YYYY-MM-DD — the same shape Postgres returns for a `date` column,
+// so schedule cells can compare against jobs.scheduledDate without any
+// timezone drift.
+export function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+// Monday-start week containing `d`, at local midnight.
+export function startOfWeek(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  const diff = (x.getDay() + 6) % 7; // 0=Sun → 6, 1=Mon → 0, …
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+
+// Cap for a still-open (forgotten) clock-out: without one, an entry left open
+// on a past day would accrue to Date.now() and show ~150h. A real shift never
+// exceeds this, so capping bounds the anomaly without hiding live current shifts.
+const MAX_OPEN_ENTRY_MS = 16 * 3_600_000;
+
+// Duration of a time entry in hours; open entries count up to `now`, capped so
+// a forgotten clock-out can't blow up a day's total.
+export function entryHours(entry, now = Date.now()) {
+  const start = new Date(entry.clockIn).getTime();
+  const end = entry.clockOut
+    ? new Date(entry.clockOut).getTime()
+    : Math.min(now, start + MAX_OPEN_ENTRY_MS);
+  return Math.max(0, (end - start) / 3_600_000);
+}
+
 /* ── auth ────────────────────────────────────────────────────────── */
 
 // New company → the signup trigger creates the company + manager profile.
@@ -99,17 +141,22 @@ export const fetchProfile = (client) =>
 const mapJob = row => ({
   id: row.id,
   client: row.client,
+  clientId: row.client_id ?? null,
   address: row.address,
   time: row.time_label,
   assigneeId: row.assignee_id,
   employee: row.assignee?.full_name ?? 'Unassigned',
   status: row.status,
+  scheduledDate: row.scheduled_date ?? null,   // 'YYYY-MM-DD' (local day) or null
+  templateId: row.template_id ?? null,
+  approvedAt: row.approved_at ?? null,
   items: [...(row.checklist_items ?? [])]
     .sort((a, b) => a.position - b.position)
     .map(i => ({ id: i.id, label: i.label, done: i.done, photoPath: i.photo_path })),
 });
 
-const JOB_SELECT = `id, client, address, time_label, assignee_id, status, position,
+const JOB_SELECT = `id, client, client_id, address, time_label, assignee_id, status, position,
+  scheduled_date, template_id, approved_at,
   assignee:profiles ( full_name ),
   checklist_items ( id, label, done, photo_path, position )`;
 
@@ -117,9 +164,16 @@ export const fetchJobs = (client) =>
   client.from('jobs').select(JOB_SELECT).order('position').order('created_at')
     .then(({ data, error }) => ({ data: data?.map(mapJob) ?? null, error }));
 
-export async function createJob(client, { companyId, clientName, address, timeLabel, assigneeId, itemLabels }) {
+export async function createJob(client, {
+  companyId, clientName, clientId, address, timeLabel, assigneeId,
+  scheduledDate, templateId, itemLabels,
+}) {
   const { data: job, error } = await client.from('jobs')
-    .insert({ company_id: companyId, client: clientName, address, time_label: timeLabel, assignee_id: assigneeId || null })
+    .insert({
+      company_id: companyId, client: clientName, client_id: clientId || null,
+      address, time_label: timeLabel, assignee_id: assigneeId || null,
+      scheduled_date: scheduledDate || null, template_id: templateId || null,
+    })
     .select('id').single();
   if (error) return { error };
   const items = itemLabels.map((label, i) => ({
@@ -127,7 +181,13 @@ export async function createJob(client, { companyId, clientName, address, timeLa
   }));
   if (items.length) {
     const { error: iErr } = await client.from('checklist_items').insert(items);
-    if (iErr) return { error: iErr };
+    if (iErr) {
+      // Compensating cleanup: these are two separate writes (no transaction),
+      // so on an items failure delete the just-created job. Otherwise it would
+      // be left item-less and a retry would create a duplicate.
+      await client.from('jobs').delete().eq('id', job.id);
+      return { error: iErr };
+    }
   }
   return { data: job, error: null };
 }
@@ -262,6 +322,111 @@ export const fetchTeam = (client) =>
       error,
     }));
 
+/* ── clients ─────────────────────────────────────────────────────── */
+
+const mapClient = r => ({
+  id: r.id, name: r.name, address: r.address,
+  frequency: r.frequency, notes: r.notes,
+});
+
+export const fetchClients = (client) =>
+  client.from('clients')
+    .select('id, name, address, frequency, notes, created_at')
+    .order('name')
+    .then(({ data, error }) => ({ data: data?.map(mapClient) ?? null, error }));
+
+export const addClient = (client, { companyId, name, address = '', frequency = '', notes = '' }) =>
+  client.from('clients')
+    .insert({ company_id: companyId, name, address, frequency, notes })
+    .select('id, name, address, frequency, notes').single()
+    .then(({ data, error }) => ({ data: data ? mapClient(data) : null, error }));
+
+export const updateClient = (client, id, { name, address, frequency, notes }) =>
+  client.from('clients').update({ name, address, frequency, notes }).eq('id', id);
+
+export const deleteClient = (client, id) =>
+  client.from('clients').delete().eq('id', id);
+
+/* ── checklist templates ─────────────────────────────────────────── */
+
+const mapTemplate = r => ({
+  id: r.id,
+  name: r.name,
+  photoPolicy: r.photo_policy,
+  items: [...(r.template_items ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map(i => ({ id: i.id, label: i.label })),
+});
+
+const TEMPLATE_SELECT = `id, name, photo_policy,
+  template_items ( id, label, position )`;
+
+export const fetchTemplates = (client) =>
+  client.from('checklist_templates')
+    .select(TEMPLATE_SELECT)
+    .order('name')
+    .then(({ data, error }) => ({ data: data?.map(mapTemplate) ?? null, error }));
+
+async function replaceTemplateItems(client, { companyId, templateId, itemLabels }) {
+  // Insert the new items BEFORE removing the old ones (these are separate
+  // writes, not a transaction). A failed insert then leaves the existing
+  // items intact instead of wiping the template; the worst case on a delete
+  // failure is stale duplicates, not silent data loss.
+  const { data: existing, error: exErr } = await client.from('template_items')
+    .select('id').eq('template_id', templateId);
+  if (exErr) return { error: exErr };
+  const items = itemLabels.map((label, i) => ({
+    template_id: templateId, company_id: companyId, label, position: i + 1,
+  }));
+  if (items.length) {
+    const { error: iErr } = await client.from('template_items').insert(items);
+    if (iErr) return { error: iErr };
+  }
+  const oldIds = (existing ?? []).map(r => r.id);
+  if (oldIds.length) {
+    const { error: dErr } = await client.from('template_items').delete().in('id', oldIds);
+    if (dErr) return { error: dErr };
+  }
+  return { error: null };
+}
+
+export async function addTemplate(client, { companyId, name, photoPolicy = '', itemLabels }) {
+  const { data: t, error } = await client.from('checklist_templates')
+    .insert({ company_id: companyId, name, photo_policy: photoPolicy })
+    .select('id').single();
+  if (error) return { error };
+  const { error: iErr } = await replaceTemplateItems(client, { companyId, templateId: t.id, itemLabels });
+  if (iErr) return { error: iErr };
+  return { data: t, error: null };
+}
+
+export async function updateTemplate(client, { companyId, id, name, photoPolicy = '', itemLabels }) {
+  const { error } = await client.from('checklist_templates')
+    .update({ name, photo_policy: photoPolicy }).eq('id', id);
+  if (error) return { error };
+  return replaceTemplateItems(client, { companyId, templateId: id, itemLabels });
+}
+
+export const deleteTemplate = (client, id) =>
+  client.from('checklist_templates').delete().eq('id', id);
+
+/* ── time entries (timesheets & reports) ─────────────────────────── */
+
+// Raw entries since `sinceISO`; callers join names via their team list and
+// aggregate with entryHours(). company_id RLS scopes this to the caller.
+export const fetchTimeEntries = (client, sinceISO) =>
+  client.from('time_entries')
+    .select('id, employee_id, clock_in, clock_out')
+    .gte('clock_in', sinceISO)
+    .order('clock_in')
+    .then(({ data, error }) => ({
+      data: data?.map(r => ({
+        id: r.id, employeeId: r.employee_id,
+        clockIn: r.clock_in, clockOut: r.clock_out,
+      })) ?? null,
+      error,
+    }));
+
 /* ── realtime ────────────────────────────────────────────────────── */
 
 // Subscribe to every table that drives UI; `handlers` maps table name →
@@ -270,7 +435,7 @@ export const fetchTeam = (client) =>
 export function subscribeCompany(client, companyId, handlers) {
   const filter = `company_id=eq.${companyId}`;
   let channel = client.channel(`company-${companyId}`);
-  for (const table of ['jobs', 'checklist_items', 'issues', 'messages', 'time_entries', 'profiles', 'invites']) {
+  for (const table of ['jobs', 'checklist_items', 'issues', 'messages', 'time_entries', 'profiles', 'invites', 'clients', 'checklist_templates', 'template_items']) {
     if (handlers[table]) {
       channel = channel.on('postgres_changes',
         { event: '*', schema: 'public', table, filter },

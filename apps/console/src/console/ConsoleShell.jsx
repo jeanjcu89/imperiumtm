@@ -35,9 +35,6 @@ const TAB_TITLES = {
   inbox: ['Inbox', 'Chat threads with your crew'],
 };
 
-// Tabs still running on the storyboard's static data.
-const SAMPLE_TABS = new Set(['schedule', 'hours', 'clients', 'templates', 'reports']);
-
 function Sidebar({ tab, setTab, onNavigate }) {
   const { profile, signOut } = useAuth();
   const { jobs } = useData();
@@ -107,12 +104,13 @@ export default function ConsoleShell() {
   const { ready } = useData();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState('dashboard');
-  const [showNewJob, setShowNewJob] = useState(false);
+  // null = closed; an object (possibly empty) = open, carrying modal prefill.
+  const [newJob, setNewJob] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const [title, subBase] = TAB_TITLES[tab];
-  const sub = SAMPLE_TABS.has(tab) ? subBase + ' · sample data' : subBase;
+  const [title, sub] = TAB_TITLES[tab];
   const View = TAB_VIEWS[tab];
+  const openNewJob = (prefill) => setNewJob(prefill || {});
 
   return (
     <div className="vh-shell" style={{ display: 'flex', background: '#faf7f2', color: '#2a211b' }}>
@@ -156,18 +154,18 @@ export default function ConsoleShell() {
               }}>{sub}</div>
             </div>
           </div>
-          <button onClick={() => setShowNewJob(true)} style={{
+          <button onClick={() => openNewJob()} style={{
             border: 'none', background: '#d96b2b', color: '#fff', fontWeight: 700,
             fontSize: 12.5, borderRadius: 9, padding: '9px 15px', cursor: 'pointer', flex: 'none',
           }}>+ New job</button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px 24px' : '22px 24px 30px' }}>
           {ready
-            ? <View />
+            ? <View openNewJob={openNewJob} />
             : <div style={{ color: '#a1927f', fontSize: 13 }}>Loading live data…</div>}
         </div>
       </div>
-      {showNewJob && <NewJobModal onClose={() => setShowNewJob(false)} />}
+      {newJob && <NewJobModal prefill={newJob} onClose={() => setNewJob(null)} />}
     </div>
   );
 }
