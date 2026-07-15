@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../DataContext.jsx';
+import { TaskPills } from './suggestedTasks.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
 
@@ -83,6 +84,7 @@ export default function TemplateModal({ template, onClose }) {
               value={itemsText} onChange={e => setItemsText(e.target.value)}
               placeholder={'Wipe desks & surfaces\nRestrooms\nKitchen / breakroom\nVacuum common areas\nEmpty bins\nGlass & mirrors'} />
           </Field>
+          <TaskPills text={itemsText} onChange={setItemsText} />
 
           {error && (
             <div style={{ fontSize: 12.5, color: '#b85618', lineHeight: 1.45, marginBottom: 12 }}>{error}</div>

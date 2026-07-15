@@ -95,6 +95,54 @@ export function entryHours(entry, now = Date.now()) {
   return Math.max(0, (end - start) / 3_600_000);
 }
 
+// Parse a local 'YYYY-MM-DD' into a Date at local midnight — the inverse of
+// ymd(), and safe from the UTC shift `new Date('2026-07-15')` would apply.
+export function parseYmd(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// Occurrence days ('YYYY-MM-DD') for a recurring job, from `start` through
+// `until` (inclusive). `weekdays` are JS getDay() numbers (0=Sun … 6=Sat) and
+// apply to 'weekly'/'biweekly'; 'monthly' ignores them and repeats on start's
+// day-of-month (clamped so the 31st lands on the last day of shorter months).
+// `maxCount` bounds the series so a far-off end date can't generate unbounded
+// rows; the caller should surface when the cap is hit.
+export function recurrenceDates({ start, until, frequency, weekdays = [], maxCount = 200 }) {
+  const out = [];
+  if (!(start instanceof Date) || isNaN(start.getTime())) return out;
+  const end = (until instanceof Date && !isNaN(until.getTime()) && until >= start) ? until : start;
+
+  if (frequency === 'monthly') {
+    const dom = start.getDate();
+    let y = start.getFullYear(), m = start.getMonth();
+    while (out.length < maxCount) {
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const d = new Date(y, m, Math.min(dom, daysInMonth));
+      if (d > end) break;
+      if (d >= start) out.push(ymd(d));
+      m += 1; if (m > 11) { m = 0; y += 1; }
+    }
+    return out;
+  }
+
+  if (frequency !== 'weekly' && frequency !== 'biweekly') return out;
+  const wanted = new Set(weekdays);
+  if (wanted.size === 0) return out;
+  const step = frequency === 'biweekly' ? 14 : 7;
+  let weekMonday = startOfWeek(start);          // Monday of start's week
+  while (out.length < maxCount) {
+    for (let i = 0; i < 7 && out.length < maxCount; i++) {
+      const d = addDays(weekMonday, i);
+      if (d >= start && d <= end && wanted.has(d.getDay())) out.push(ymd(d));
+    }
+    weekMonday = addDays(weekMonday, step);
+    if (weekMonday > end) break;
+  }
+  return out;
+}
+
 /* ── auth ────────────────────────────────────────────────────────── */
 
 // New company → the signup trigger creates the company + manager profile.
@@ -150,13 +198,15 @@ const mapJob = row => ({
   scheduledDate: row.scheduled_date ?? null,   // 'YYYY-MM-DD' (local day) or null
   templateId: row.template_id ?? null,
   approvedAt: row.approved_at ?? null,
+  estimatedHours: row.estimated_hours ?? null,
+  recurrenceGroupId: row.recurrence_group_id ?? null,
   items: [...(row.checklist_items ?? [])]
     .sort((a, b) => a.position - b.position)
     .map(i => ({ id: i.id, label: i.label, done: i.done, photoPath: i.photo_path })),
 });
 
 const JOB_SELECT = `id, client, client_id, address, time_label, assignee_id, status, position,
-  scheduled_date, template_id, approved_at,
+  scheduled_date, template_id, approved_at, estimated_hours, recurrence_group_id,
   assignee:profiles ( full_name ),
   checklist_items ( id, label, done, photo_path, position )`;
 
@@ -164,32 +214,41 @@ export const fetchJobs = (client) =>
   client.from('jobs').select(JOB_SELECT).order('position').order('created_at')
     .then(({ data, error }) => ({ data: data?.map(mapJob) ?? null, error }));
 
-export async function createJob(client, {
+// Create one or more jobs sharing the same client/checklist. `dates` is a list
+// of 'YYYY-MM-DD' scheduled days (from recurrenceDates() for a recurring job,
+// or a single day for a one-off); an empty/absent list creates one unscheduled
+// job. Occurrences of a recurring job share a recurrence_group_id so the series
+// can be managed together later.
+export async function createJobs(client, {
   companyId, clientName, clientId, address, timeLabel, assigneeId,
-  scheduledDate, templateId, itemLabels,
+  estimatedHours, templateId, itemLabels, dates,
 }) {
-  const { data: job, error } = await client.from('jobs')
-    .insert({
-      company_id: companyId, client: clientName, client_id: clientId || null,
-      address, time_label: timeLabel, assignee_id: assigneeId || null,
-      scheduled_date: scheduledDate || null, template_id: templateId || null,
-    })
-    .select('id').single();
-  if (error) return { error };
-  const items = itemLabels.map((label, i) => ({
-    job_id: job.id, company_id: companyId, label, position: i + 1,
+  const days = (dates && dates.length) ? dates : [null];
+  // Only a real series gets a group id; a single job stays ungrouped.
+  const groupId = days.length > 1 ? crypto.randomUUID() : null;
+  const rows = days.map(scheduled_date => ({
+    company_id: companyId, client: clientName, client_id: clientId || null,
+    address, time_label: timeLabel, assignee_id: assigneeId || null,
+    scheduled_date: scheduled_date || null, template_id: templateId || null,
+    estimated_hours: estimatedHours ?? null, recurrence_group_id: groupId,
   }));
+  const { data: jobs, error } = await client.from('jobs').insert(rows).select('id');
+  if (error) return { error };
+
+  // One checklist per job — flatten every job's items into a single insert.
+  const items = jobs.flatMap(job =>
+    itemLabels.map((label, i) => ({ job_id: job.id, company_id: companyId, label, position: i + 1 })));
   if (items.length) {
     const { error: iErr } = await client.from('checklist_items').insert(items);
     if (iErr) {
-      // Compensating cleanup: these are two separate writes (no transaction),
-      // so on an items failure delete the just-created job. Otherwise it would
-      // be left item-less and a retry would create a duplicate.
-      await client.from('jobs').delete().eq('id', job.id);
+      // Compensating cleanup: jobs and their items are separate writes (no
+      // transaction). On an items failure delete every job we just created so
+      // none are left checklist-less and a retry can't duplicate the series.
+      await client.from('jobs').delete().in('id', jobs.map(j => j.id));
       return { error: iErr };
     }
   }
-  return { data: job, error: null };
+  return { data: jobs, error: null, count: jobs.length };
 }
 
 export const setJobStatus = (client, jobId, status) =>

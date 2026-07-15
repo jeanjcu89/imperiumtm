@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import {
   fetchJobs, fetchTeam, fetchIssues, fetchInvites,
   fetchClients, fetchTemplates, fetchTimeEntries,
-  createJob, setJobStatus, resetJobItems, deleteJob, createInvite,
+  createJobs, setJobStatus, resetJobItems, deleteJob, createInvite,
   addClient, updateClient, deleteClient,
   addTemplate, updateTemplate, deleteTemplate,
   subscribeCompany, makeTicketed, startOfWeek, addDays,
@@ -61,7 +61,7 @@ export function DataProvider({ children }) {
 
   const value = useMemo(() => ({
     ready, jobs, team, issues, invites, clients, templates, timeEntries, messagesVersion,
-    createJob: (params) => createJob(client, { companyId: profile.companyId, ...params }),
+    createJob: (params) => createJobs(client, { companyId: profile.companyId, ...params }),
     approveJob: (jobId) => setJobStatus(client, jobId, 'approved'),
     rejectJob: async (jobId) => {
       const first = await setJobStatus(client, jobId, 'inprogress');

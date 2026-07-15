@@ -727,7 +727,7 @@ export function ScheduleTab({ openNewJob }) {
                           <div key={j.id} style={{
                             borderRadius: 8, background: cellStatusBg(j.status), color: cellStatusFg(j.status),
                             fontSize: 10.5, fontWeight: 600, padding: '7px 8px', lineHeight: 1.25,
-                          }}>{j.client}{j.time ? ` · ${j.time}` : ''}</div>
+                          }}>{j.client}{j.time ? ` · ${j.time}` : ''}{j.estimatedHours ? ` · ${j.estimatedHours}h` : ''}</div>
                         ))}
                       </div>
                     );
