@@ -37,16 +37,19 @@ function useWeek({ minOffset = -Infinity } = {}) {
   };
 }
 
-function WeekNav({ label, offset, atMin, onPrev, onNext, onReset }) {
+// Prev / next / today control shared by Hours (weeks) and Schedule (weeks or
+// months). No outer margin — callers place it (Hours wraps it, Schedule drops
+// it in a toolbar).
+function PeriodNav({ label, offset, atMin = false, onPrev, onNext, onReset, unit = 'week' }) {
   const btn = {
     border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
     fontWeight: 700, fontSize: 13, borderRadius: 8, width: 30, height: 30,
     lineHeight: 1,
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-      <button onClick={onPrev} disabled={atMin} style={{ ...btn, cursor: atMin ? 'default' : 'pointer', opacity: atMin ? 0.4 : 1 }} aria-label="Previous week">‹</button>
-      <button onClick={onNext} style={{ ...btn, cursor: 'pointer' }} aria-label="Next week">›</button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <button onClick={onPrev} disabled={atMin} style={{ ...btn, cursor: atMin ? 'default' : 'pointer', opacity: atMin ? 0.4 : 1 }} aria-label={`Previous ${unit}`}>‹</button>
+      <button onClick={onNext} style={{ ...btn, cursor: 'pointer' }} aria-label={`Next ${unit}`}>›</button>
       <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 14 }}>{label}</div>
       {offset !== 0 && (
         <button onClick={onReset} style={{
@@ -56,6 +59,45 @@ function WeekNav({ label, offset, atMin, onPrev, onNext, onReset }) {
       )}
     </div>
   );
+}
+
+// Calendar weeks (Monday-first) covering the offset month, each day flagged
+// inMonth / isToday. Jobs are fetched unwindowed, so there's no back/forward
+// clamp here (unlike Hours' 6-week window).
+function useMonth() {
+  const [offset, setOffset] = useState(0);
+  const base = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(1);                      // set day before month to avoid overflow
+    d.setMonth(d.getMonth() + offset);
+    return d;
+  }, [offset]);
+  const weeks = useMemo(() => {
+    const month = base.getMonth();
+    const lastOfMonth = new Date(base.getFullYear(), month + 1, 0);
+    const todayKey = ymd(new Date());
+    const out = [];
+    let cursor = startOfWeek(base);    // Monday on/before the 1st
+    while (true) {
+      const wk = [];
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(cursor, i);
+        wk.push({ date, key: ymd(date), inMonth: date.getMonth() === month, isToday: ymd(date) === todayKey });
+      }
+      out.push(wk);
+      cursor = addDays(cursor, 7);
+      if (cursor > lastOfMonth) break;
+    }
+    return out;
+  }, [base]);
+  const label = base.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return {
+    weeks, label, offset,
+    prev: () => setOffset(o => o - 1),
+    next: () => setOffset(o => o + 1),
+    reset: () => setOffset(0),
+  };
 }
 
 const emptyState = (title, sub) => (
@@ -537,7 +579,9 @@ export function HoursTab() {
 
   return (
     <>
-      <WeekNav label={week.label} offset={week.offset} atMin={week.atMin} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
+      <div style={{ marginBottom: 14 }}>
+        <PeriodNav label={week.label} offset={week.offset} atMin={week.atMin} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
+      </div>
       {rows.length === 0
         ? emptyState('No hours this week', 'Crew hours appear here once they clock in and out from the field app.')
         : (
@@ -643,100 +687,250 @@ export function ClientsTab() {
   );
 }
 
-/* ── Schedule (live: jobs by crew × day) ───────────────────── */
+/* ── Schedule (live: week grid or month calendar, with filters) ─────── */
 
 const scheduleGrid = '1.4fr repeat(7,1fr)';
+const monthGrid = 'repeat(7, minmax(0, 1fr))';
 const UNASSIGNED = '__unassigned__';
 
-export function ScheduleTab({ openNewJob }) {
-  const { jobs, team } = useData();
-  const { days, ...week } = useWeek();
+const stBg = (status) => statusMeta(status).bg;
+const stFg = (status) => statusMeta(status).fg;
+const statusLabel = (s) => s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+// Tooltip: who's on the job, its time and estimate — the detail the compact
+// chips don't have room to show inline.
+const jobTip = (j) => [j.employee, j.time, j.estimatedHours ? `${j.estimatedHours}h` : ''].filter(Boolean).join(' · ');
 
+const filterSelect = {
+  border: '1px solid #e0d3c2', background: '#fff', color: '#3a2c20',
+  fontSize: 12.5, fontWeight: 600, borderRadius: 8, padding: '7px 10px',
+  cursor: 'pointer', outline: 'none', maxWidth: 170,
+};
+
+function Segmented({ value, onChange, options }) {
+  return (
+    <div style={{ display: 'inline-flex', border: '1px solid #e0d3c2', borderRadius: 8, overflow: 'hidden', flex: 'none' }}>
+      {options.map(o => {
+        const on = value === o.value;
+        return (
+          <button key={o.value} onClick={() => onChange(o.value)} style={{
+            border: 'none', background: on ? '#d96b2b' : '#fff', color: on ? '#fff' : '#8a7d70',
+            fontWeight: 700, fontSize: 12.5, padding: '7px 14px', cursor: 'pointer',
+          }}>{o.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Week grid: crew (rows) × day (columns). `jobs` is already filtered; empty
+// cells on assignable rows open a pre-filled New Job.
+function ScheduleWeek({ days, jobs, team, workerFilter, filtered, openNewJob }) {
   const dayKeys = useMemo(() => new Set(days.map(d => d.key)), [days]);
-
-  // group[assigneeId][dayKey] = [job, …]
   const group = useMemo(() => {
     const g = {};
     for (const j of jobs) {
-      if (!j.scheduledDate || !dayKeys.has(j.scheduledDate)) continue;
+      if (!dayKeys.has(j.scheduledDate)) continue;
       const who = j.assigneeId ?? UNASSIGNED;
       ((g[who] ??= {})[j.scheduledDate] ??= []).push(j);
     }
     return g;
   }, [jobs, dayKeys]);
 
-  // Rows: every crew member, plus anyone else with a job this week, plus an
-  // Unassigned row when scheduled jobs have no assignee.
   const rows = useMemo(() => {
-    const scheduled = new Set(Object.keys(group));
-    const list = team
-      .filter(p => p.role === 'crew' || scheduled.has(p.id))
+    const has = new Set(Object.keys(group));
+    let list = team
+      .filter(p => p.role === 'crew' || has.has(p.id))
       .map(p => ({ id: p.id, name: p.name, initials: p.initials }));
-    if (scheduled.has(UNASSIGNED)) list.push({ id: UNASSIGNED, name: 'Unassigned', initials: '—' });
+    if (has.has(UNASSIGNED)) list.push({ id: UNASSIGNED, name: 'Unassigned', initials: '—' });
+    // A worker filter narrows to just that person's (or the Unassigned) row.
+    if (workerFilter) list = list.filter(r => r.id === workerFilter);
     return list;
-  }, [team, group]);
+  }, [team, group, workerFilter]);
 
-  const cellStatusBg = (status) => statusMeta(status).bg;
-  const cellStatusFg = (status) => statusMeta(status).fg;
+  if (rows.length === 0) {
+    return filtered
+      ? emptyState('No jobs match', 'No scheduled jobs match these filters this week. Clear them or try another week.')
+      : emptyState('No crew yet', 'Invite crew from the Team tab, then schedule their jobs here or with “+ New job”.');
+  }
+
+  return (
+    <div style={{ ...card, overflowX: 'auto' }}>
+      <div style={{ minWidth: 860 }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
+          background: '#faf7f2', borderBottom: '1px solid #ece5db',
+          fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
+        }}>
+          <div>Crew</div>
+          {days.map(d => <div key={d.key}>{d.name} {d.date.getDate()}</div>)}
+        </div>
+        {rows.map(row => (
+          <div key={row.id} style={{
+            display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
+            borderBottom: '1px solid #f4ede3', alignItems: 'stretch',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: '50%', background: '#f3e2d2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, color: '#b85618', flex: 'none',
+              }}>{row.initials}</div>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{row.name}</span>
+            </div>
+            {days.map(d => {
+              const cell = group[row.id]?.[d.key] ?? [];
+              if (cell.length === 0) {
+                const assignable = row.id !== UNASSIGNED && openNewJob;
+                return (
+                  <div key={d.key}
+                    onClick={assignable ? () => openNewJob({ assigneeId: row.id, scheduledDate: d.key }) : undefined}
+                    style={{
+                      minHeight: 40, borderRadius: 8, background: '#faf7f2',
+                      border: '1px dashed #ece1d2', cursor: assignable ? 'pointer' : 'default',
+                    }} />
+                );
+              }
+              return (
+                <div key={d.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {cell.map(j => (
+                    <div key={j.id} title={jobTip(j)} style={{
+                      borderRadius: 8, background: stBg(j.status), color: stFg(j.status),
+                      fontSize: 10.5, fontWeight: 600, padding: '7px 8px', lineHeight: 1.25,
+                    }}>{j.client}{j.time ? ` · ${j.time}` : ''}{j.estimatedHours ? ` · ${j.estimatedHours}h` : ''}</div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Month calendar: a day cell per date, jobs (already filtered) shown as chips.
+// Empty in-month cells open a pre-filled New Job on that day.
+function ScheduleMonth({ weeks, jobs, openNewJob, prefillWorker }) {
+  const byDay = useMemo(() => {
+    const g = {};
+    for (const j of jobs) (g[j.scheduledDate] ??= []).push(j);
+    return g;
+  }, [jobs]);
+
+  return (
+    <div style={{ ...card, overflowX: 'auto' }}>
+      <div style={{ minWidth: 780 }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: monthGrid,
+          background: '#faf7f2', borderBottom: '1px solid #ece5db',
+        }}>
+          {DAY_NAMES.map(n => (
+            <div key={n} style={{
+              padding: '9px 12px', fontSize: 11, fontWeight: 700, color: '#a1927f',
+              textTransform: 'uppercase', letterSpacing: '.05em',
+            }}>{n}</div>
+          ))}
+        </div>
+        {weeks.map((wk, wi) => (
+          <div key={wi} style={{ display: 'grid', gridTemplateColumns: monthGrid }}>
+            {wk.map(day => {
+              const list = byDay[day.key] ?? [];
+              const canAdd = openNewJob && day.inMonth && list.length === 0;
+              return (
+                <div key={day.key}
+                  onClick={canAdd ? () => openNewJob({ scheduledDate: day.key, assigneeId: prefillWorker }) : undefined}
+                  style={{
+                    minHeight: 96, padding: 7, borderRight: '1px solid #f4ede3', borderBottom: '1px solid #f4ede3',
+                    background: day.inMonth ? '#fff' : '#faf8f4',
+                    cursor: canAdd ? 'pointer' : 'default',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, width: 20, height: 20, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: day.isToday ? '#d96b2b' : 'transparent',
+                      color: day.isToday ? '#fff' : (day.inMonth ? '#8a7d70' : '#c9b8a3'),
+                    }}>{day.date.getDate()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {list.slice(0, 3).map(j => (
+                      <div key={j.id} title={`${j.client} · ${jobTip(j)}`} style={{
+                        borderRadius: 6, background: stBg(j.status), color: stFg(j.status),
+                        fontSize: 10, fontWeight: 600, padding: '3px 6px', lineHeight: 1.2,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{j.client}</div>
+                    ))}
+                    {list.length > 3 && (
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#a1927f', paddingLeft: 2 }}>+{list.length - 3} more</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ScheduleTab({ openNewJob }) {
+  const { jobs, team } = useData();
+  const [view, setView] = useState('week');
+  const [clientF, setClientF] = useState('');
+  const [workerF, setWorkerF] = useState('');
+  const [statusF, setStatusF] = useState('');
+  const week = useWeek();
+  const month = useMonth();
+
+  const scheduled = useMemo(() => jobs.filter(j => j.scheduledDate), [jobs]);
+  const clientOptions = useMemo(
+    () => [...new Set(scheduled.map(j => j.client).filter(Boolean))].sort(), [scheduled]);
+  const statusOptions = useMemo(
+    () => [...new Set(scheduled.map(j => j.status))], [scheduled]);
+
+  const filtered = useMemo(() => scheduled.filter(j =>
+    (!clientF || j.client === clientF)
+    && (!workerF || (workerF === UNASSIGNED ? !j.assigneeId : j.assigneeId === workerF))
+    && (!statusF || j.status === statusF)
+  ), [scheduled, clientF, workerF, statusF]);
+
+  const anyFilter = !!(clientF || workerF || statusF);
+  const prefillWorker = workerF && workerF !== UNASSIGNED ? workerF : undefined;
 
   return (
     <>
-      <WeekNav label={week.label} offset={week.offset} atMin={week.atMin} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
-      {rows.length === 0
-        ? emptyState('No crew yet', 'Invite crew from the Team tab, then schedule their jobs here or with “+ New job”.')
-        : (
-          <div style={{ ...card, overflowX: 'auto' }}>
-            <div style={{ minWidth: 860 }}>
-              <div style={{
-                display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
-                background: '#faf7f2', borderBottom: '1px solid #ece5db',
-                fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em',
-              }}>
-                <div>Crew</div>
-                {days.map(d => <div key={d.key}>{d.name} {d.date.getDate()}</div>)}
-              </div>
-              {rows.map(row => (
-                <div key={row.id} style={{
-                  display: 'grid', gridTemplateColumns: scheduleGrid, gap: 8, padding: '12px 18px',
-                  borderBottom: '1px solid #f4ede3', alignItems: 'stretch',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <div style={{
-                      width: 30, height: 30, borderRadius: '50%', background: '#f3e2d2',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700, color: '#b85618', flex: 'none',
-                    }}>{row.initials}</div>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{row.name}</span>
-                  </div>
-                  {days.map(d => {
-                    const cell = group[row.id]?.[d.key] ?? [];
-                    if (cell.length === 0) {
-                      const assignable = row.id !== UNASSIGNED;
-                      return (
-                        <div key={d.key}
-                          onClick={assignable && openNewJob ? () => openNewJob({ assigneeId: row.id, scheduledDate: d.key }) : undefined}
-                          style={{
-                            minHeight: 40, borderRadius: 8, background: '#faf7f2',
-                            border: '1px dashed #ece1d2', cursor: assignable && openNewJob ? 'pointer' : 'default',
-                          }} />
-                      );
-                    }
-                    return (
-                      <div key={d.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {cell.map(j => (
-                          <div key={j.id} style={{
-                            borderRadius: 8, background: cellStatusBg(j.status), color: cellStatusFg(j.status),
-                            fontSize: 10.5, fontWeight: 600, padding: '7px 8px', lineHeight: 1.25,
-                          }}>{j.client}{j.time ? ` · ${j.time}` : ''}{j.estimatedHours ? ` · ${j.estimatedHours}h` : ''}</div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <Segmented value={view} onChange={setView}
+          options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} />
+        {view === 'week'
+          ? <PeriodNav unit="week" label={week.label} offset={week.offset} onPrev={week.prev} onNext={week.next} onReset={week.reset} />
+          : <PeriodNav unit="month" label={month.label} offset={month.offset} onPrev={month.prev} onNext={month.next} onReset={month.reset} />}
+        <div style={{ flex: 1, minWidth: 8 }} />
+        <select style={filterSelect} value={clientF} onChange={e => setClientF(e.target.value)} aria-label="Filter by client">
+          <option value="">All clients</option>
+          {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select style={filterSelect} value={workerF} onChange={e => setWorkerF(e.target.value)} aria-label="Filter by worker">
+          <option value="">All workers</option>
+          {team.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <option value={UNASSIGNED}>Unassigned</option>
+        </select>
+        <select style={filterSelect} value={statusF} onChange={e => setStatusF(e.target.value)} aria-label="Filter by status">
+          <option value="">All statuses</option>
+          {statusOptions.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+        </select>
+        {anyFilter && (
+          <button onClick={() => { setClientF(''); setWorkerF(''); setStatusF(''); }} style={{
+            border: 'none', background: 'transparent', color: '#b85618',
+            fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: '4px 6px',
+          }}>Clear filters</button>
         )}
+      </div>
+
+      {view === 'week'
+        ? <ScheduleWeek days={week.days} jobs={filtered} team={team} workerFilter={workerF} filtered={anyFilter} openNewJob={openNewJob} />
+        : <ScheduleMonth weeks={month.weeks} jobs={filtered} openNewJob={openNewJob} prefillWorker={prefillWorker} />}
     </>
   );
 }
