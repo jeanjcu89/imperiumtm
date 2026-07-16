@@ -225,6 +225,56 @@ export const setOnboarded = (client, userId) =>
 export const changePassword = (client, newPassword) =>
   client.auth.updateUser({ password: newPassword });
 
+// Permanently delete the caller's account (App Store 5.1.1(v)). The v10 RPC
+// enforces the last-active-manager guard and dissolves a company whose last
+// active member is leaving.
+//
+// File bytes are removed here through the storage API BEFORE the RPC — SQL
+// deletes on storage.objects only drop metadata, and once the account row is
+// gone the caller's RLS context can't touch storage. All cleanup is best
+// effort: a storage hiccup must never block account deletion, and the RPC's
+// metadata delete makes anything missed permanently unreachable.
+export async function deleteOwnAccount(client) {
+  try {
+    const { data: u } = await client.auth.getUser();
+    const uid = u?.user?.id;
+    if (uid) {
+      // The caller's own issue photos always go with the account.
+      const { data: rows } = await client.from('issues')
+        .select('photo_path').eq('author_id', uid).not('photo_path', 'is', null);
+      const paths = (rows ?? []).map(r => r.photo_path);
+      if (paths.length) await client.storage.from(PHOTO_BUCKET).remove(paths);
+
+      // If the RPC will dissolve the company (caller is its last active
+      // member), wipe the whole photo tree: <companyId>/<jobId|issues>/<file>.
+      const { data: me } = await client.from('profiles')
+        .select('company_id, role, active').eq('id', uid).single();
+      if (me?.company_id) {
+        const { data: others } = await client.from('profiles')
+          .select('id, active').eq('company_id', me.company_id).neq('id', uid);
+        const activeOthers = (others ?? []).filter(p => p.active).length;
+        const dissolving = (others ?? []).length === 0
+          || (me.active && me.role === 'manager' && activeOthers === 0);
+        if (dissolving) {
+          const root = me.company_id;
+          const { data: entries } = await client.storage.from(PHOTO_BUCKET).list(root, { limit: 1000 });
+          for (const e of entries ?? []) {
+            if (e.id) {                     // a file directly under the root
+              await client.storage.from(PHOTO_BUCKET).remove([`${root}/${e.name}`]);
+            } else {                        // a folder (job id or "issues")
+              const { data: files } = await client.storage.from(PHOTO_BUCKET)
+                .list(`${root}/${e.name}`, { limit: 1000 });
+              const all = (files ?? []).filter(f => f.id).map(f => `${root}/${e.name}/${f.name}`);
+              if (all.length) await client.storage.from(PHOTO_BUCKET).remove(all);
+            }
+          }
+        }
+      }
+    }
+  } catch { /* best effort — see above */ }
+  return client.rpc('delete_own_account');
+}
+
 export const fetchCompany = (client, companyId) =>
   client.from('companies')
     .select('id, name, address, phone')

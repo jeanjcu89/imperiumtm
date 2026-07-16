@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { deleteOwnAccount } from '@imperium/shared';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer, createNavigationContainerRef, StackActions } from '@react-navigation/native';
@@ -79,7 +80,27 @@ function Center({ children }) {
 }
 
 function Gate() {
-  const { configured, loading, session, profile, signOut } = useAuth();
+  const { client, configured, loading, session, profile, signOut } = useAuth();
+
+  // Apple 5.1.1(v): account deletion must stay reachable even for members a
+  // manager has deactivated — this screen is all they can see.
+  const confirmDelete = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account', style: 'destructive',
+          onPress: async () => {
+            const { error } = (await deleteOwnAccount(client)) ?? {};
+            if (error) { Alert.alert('Account not deleted', error.message); return; }
+            signOut();
+          },
+        },
+      ],
+    );
+  };
 
   if (!configured) {
     return (
@@ -110,6 +131,9 @@ function Gate() {
         </Text>
         <Pressable onPress={signOut} style={styles.noticeBtn}>
           <Text style={styles.noticeBtnTxt}>Sign out</Text>
+        </Pressable>
+        <Pressable onPress={confirmDelete} style={[styles.noticeBtn, styles.deleteBtn]}>
+          <Text style={styles.deleteBtnTxt}>Delete account</Text>
         </Pressable>
       </Center>
     );
@@ -148,6 +172,8 @@ const styles = StyleSheet.create({
     borderRadius: 10, paddingVertical: 11, paddingHorizontal: 26,
   },
   noticeBtnTxt: { fontSize: 13.5, fontWeight: '700', color: '#8a7d70' },
+  deleteBtn: { marginTop: 10, borderColor: '#e7c4c4' },
+  deleteBtnTxt: { fontSize: 13.5, fontWeight: '700', color: '#b04a3a' },
   tabBar: {
     flexDirection: 'row', backgroundColor: '#fff',
     borderTopWidth: 1, borderTopColor: '#ece5db',

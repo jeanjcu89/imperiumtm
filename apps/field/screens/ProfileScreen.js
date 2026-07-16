@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { statusMeta, ymd, startOfWeek, addDays, entryHours, initials, updateOwnName } from '@imperium/shared';
+import { statusMeta, ymd, startOfWeek, addDays, entryHours, initials, updateOwnName, deleteOwnAccount } from '@imperium/shared';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
 import { useData } from '../state/DataContext.js';
@@ -17,6 +17,31 @@ export default function ProfileScreen({ navigation }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
+
+  const [deleting, setDeleting] = useState(false);
+
+  // Apple 5.1.1(v): accounts created in-app must be deletable in-app.
+  // Two-step confirm; the RPC enforces the last-manager guard server-side.
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete account', style: 'destructive', onPress: doDeleteAccount },
+      ],
+    );
+  };
+  const doDeleteAccount = async () => {
+    setDeleting(true);
+    const { error } = (await deleteOwnAccount(client)) ?? {};
+    setDeleting(false);
+    if (error) {
+      Alert.alert('Account not deleted', error.message);
+      return;
+    }
+    signOut();   // session's user no longer exists; drop to the sign-in screen
+  };
 
   const startNameEdit = () => { setNameDraft(profile?.fullName ?? ''); setEditingName(true); };
   const saveName = async () => {
@@ -164,6 +189,14 @@ export default function ProfileScreen({ navigation }) {
         <Pressable onPress={signOut} style={styles.signOut}>
           <Text style={styles.signOutTxt}>Sign out</Text>
         </Pressable>
+
+        <Pressable onPress={confirmDeleteAccount} disabled={deleting} style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}>
+          <Text style={styles.deleteTxt}>{deleting ? 'Deleting account…' : 'Delete account'}</Text>
+        </Pressable>
+        <Text style={styles.deleteNote}>
+          Permanently removes your account and personal data. Photos attached
+          to your company’s jobs remain part of its work records.
+        </Text>
       </ScrollView>
     </View>
   );
@@ -224,4 +257,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#e0d3c2', backgroundColor: '#fff',
   },
   signOutTxt: { color: '#8a7d70', fontWeight: '700', fontSize: 13.5 },
+  deleteBtn: {
+    marginTop: 10, borderRadius: 11, paddingVertical: 13, alignItems: 'center',
+    borderWidth: 1, borderColor: '#e7c4c4', backgroundColor: '#fff',
+  },
+  deleteTxt: { color: '#b04a3a', fontWeight: '700', fontSize: 13.5 },
+  deleteNote: {
+    fontSize: 11, color: '#a1927f', textAlign: 'center', lineHeight: 16,
+    marginTop: 8, marginBottom: 4, paddingHorizontal: 10,
+  },
 });

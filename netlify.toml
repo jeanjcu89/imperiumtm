@@ -2,6 +2,18 @@
   command = "npm run build:console"
   publish = "apps/console/dist"
 
+# Pretty URLs for the static store-compliance pages (must precede the SPA
+# catch-all; App Store Connect links to /privacy and /support).
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/support"
+  to = "/support.html"
+  status = 200
+
 # Single-page app: serve index.html for every route.
 [[redirects]]
   from = "/*"
