@@ -69,6 +69,54 @@
   .shot .lbl { flex: 1; font-size: 13px; font-weight: 600; }
   .shot .tm { font-size: 11px; font-weight: 700; color: var(--orange); font-variant-numeric: tabular-nums; }
 
+  /* product mockups */
+  .looks { display: grid; grid-template-columns: 1.7fr 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 820px) { .looks { grid-template-columns: 1fr; } }
+  .dev-browser { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(58,44,32,.10); }
+  .b-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #f2ece2; border-bottom: 1px solid var(--line); }
+  .b-dot { width: 10px; height: 10px; border-radius: 50%; background: #ddd0be; }
+  .b-url { margin-left: 10px; background: #fff; border: 1px solid var(--line); border-radius: 20px; font-size: 11px; color: var(--faint); padding: 3px 12px; }
+  .b-body { display: flex; min-height: 330px; }
+  .b-side { width: 132px; background: var(--brown); padding: 12px 10px; flex: none; }
+  .b-side .s-brand { display: flex; align-items: center; gap: 6px; color: #fff; font-family: "Libre Franklin", sans-serif; font-weight: 700; font-size: 11px; margin: 0 4px 12px; }
+  .b-side .s-item { font-size: 10px; color: #c9b8a3; padding: 6px 8px; border-radius: 7px; display: flex; align-items: center; gap: 6px; }
+  .b-side .s-item.on { background: #4a3928; color: #fff; font-weight: 700; }
+  .b-side .s-dot { width: 5px; height: 5px; border-radius: 50%; background: #6b5642; flex: none; }
+  .b-side .s-item.on .s-dot { background: var(--orange); }
+  .b-main { flex: 1; background: var(--bg); padding: 14px 16px; min-width: 0; }
+  .b-title { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 14px; margin-bottom: 10px; }
+  .b-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .b-stat { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .b-stat .k { font-size: 8.5px; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .b-stat .v { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 17px; }
+  .b-row { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
+  .b-row .nm { font-weight: 700; font-size: 11px; }
+  .b-row .mt { color: var(--faint); font-size: 9.5px; }
+  .b-prog { flex: 1; height: 5px; background: #f0e7dc; border-radius: 5px; overflow: hidden; min-width: 40px; }
+  .b-prog i { display: block; height: 100%; background: var(--orange); }
+  .chip { font-size: 8px; font-weight: 800; letter-spacing: .04em; border-radius: 20px; padding: 3px 8px; flex: none; text-transform: uppercase; }
+  .chip.prog { background: #fdefdc; color: #b06a12; }
+  .chip.rev { background: #e7f0fb; color: #2f6bb0; }
+  .chip.ok { background: #e2efe5; color: #4f8a5b; }
+  .chip.todo { background: #f1ece4; color: #8a7d70; }
+  .dev-phone { width: 252px; margin: 0 auto; background: #1d1712; border-radius: 34px; padding: 10px; box-shadow: 0 18px 50px rgba(58,44,32,.18); }
+  .p-scr { background: var(--bg); border-radius: 26px; overflow: hidden; padding: 14px 12px 0; }
+  .p-notch { width: 90px; height: 16px; background: #1d1712; border-radius: 0 0 12px 12px; margin: -14px auto 10px; }
+  .p-date { font-size: 8.5px; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .p-hi { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+  .p-clock { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .p-clock .st { font-size: 8px; font-weight: 800; letter-spacing: .06em; color: #4f8a5b; }
+  .p-clock .tv { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 13px; }
+  .p-clock .btn { background: var(--brown); color: #fff; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 6px 10px; }
+  .p-sec { display: flex; justify-content: space-between; font-size: 9px; color: var(--faint); font-weight: 700; margin-bottom: 6px; }
+  .p-job { background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 9px 10px; margin-bottom: 7px; }
+  .p-job .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; gap: 6px; }
+  .p-job .nm { font-weight: 700; font-size: 10.5px; }
+  .p-job .ad { font-size: 8.5px; color: var(--faint); margin-bottom: 7px; }
+  .p-job .cnt { font-size: 8.5px; color: var(--faint); font-weight: 700; flex: none; }
+  .p-tabs { display: flex; justify-content: space-around; border-top: 1px solid var(--line); background: #fff; margin: 10px -12px 0; padding: 9px 0 13px; font-size: 8px; color: var(--faint); font-weight: 700; }
+  .p-tabs b { color: var(--orange); }
+
   footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--faint); font-size: 13px; }
   .foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
   footer a { color: var(--mut); text-decoration: none; font-weight: 600; margin-right: 18px; }
@@ -113,6 +161,64 @@
     </div>
   </div>
 </div>
+
+<section id="product" style="padding-bottom: 0">
+  <div class="wrap">
+    <h2>A look inside</h2>
+    <p class="sub">The manager console and the crew app — same data, two views, always in sync.</p>
+    <div class="looks">
+
+      <div class="dev-browser" role="img" aria-label="Manager console dashboard with live job board">
+        <div class="b-bar"><span class="b-dot"></span><span class="b-dot"></span><span class="b-dot"></span><span class="b-url">app.imperiumtm.com</span></div>
+        <div class="b-body">
+          <div class="b-side">
+            <div class="s-brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="16" height="16"><defs><mask id="chk2"><rect width="100" height="100" fill="#fff"/><path d="M38,58 L47,67 L64,48" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="36" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"/><rect x="46.5" y="8" width="7" height="22" rx="3.5" fill="#d96b2b"/><rect x="57" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"/><path d="M50,34 L78,44 L78,62 Q78,80 50,90 Q22,80 22,62 L22,44 Z" fill="#f3ead9" mask="url(#chk2)"/></svg>Imperium</div>
+            <div class="s-item on"><span class="s-dot"></span>Dashboard</div>
+            <div class="s-item"><span class="s-dot"></span>Schedule</div>
+            <div class="s-item"><span class="s-dot"></span>Jobs</div>
+            <div class="s-item"><span class="s-dot"></span>Review</div>
+            <div class="s-item"><span class="s-dot"></span>Issues</div>
+            <div class="s-item"><span class="s-dot"></span>Hours</div>
+          </div>
+          <div class="b-main">
+            <div class="b-title">Dashboard</div>
+            <div class="b-stats">
+              <div class="b-stat"><div class="k">Active jobs</div><div class="v">4</div></div>
+              <div class="b-stat"><div class="k">Pending review</div><div class="v">2</div></div>
+              <div class="b-stat"><div class="k">Hours logged</div><div class="v">26.5</div></div>
+            </div>
+            <div class="b-row"><div style="min-width:0"><div class="nm">Riverside Dental</div><div class="mt">Maria Santos · 9:00 AM</div></div><div class="b-prog"><i style="width:60%"></i></div><span class="chip prog">In progress</span></div>
+            <div class="b-row"><div style="min-width:0"><div class="nm">Northgate Offices</div><div class="mt">James Okoro · 12:30 PM</div></div><div class="b-prog"><i style="width:100%"></i></div><span class="chip rev">In review</span></div>
+            <div class="b-row"><div style="min-width:0"><div class="nm">Harbor Law Group</div><div class="mt">Priya Nair · 8:00 AM</div></div><div class="b-prog"><i style="width:100%"></i></div><span class="chip ok">Approved</span></div>
+            <div class="b-row"><div style="min-width:0"><div class="nm">Bloom Café</div><div class="mt">Maria Santos · 4:00 PM</div></div><div class="b-prog"><i style="width:0%"></i></div><span class="chip todo">To do</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dev-phone" role="img" aria-label="Crew app showing today's jobs and the clock-in card">
+        <div class="p-scr">
+          <div class="p-notch"></div>
+          <div class="p-date">Wednesday, July 16</div>
+          <div class="p-hi">Good morning, Maria</div>
+          <div class="p-clock"><div><div class="st">CLOCKED IN · 2H 14M</div><div class="tv">Riverside Dental</div></div><span class="btn">Clock out</span></div>
+          <div class="p-sec"><span>Today's jobs</span><span>3 assigned</span></div>
+          <div class="p-job">
+            <div class="top"><span class="nm">Riverside Dental</span><span class="chip prog">In progress</span></div>
+            <div class="ad">210 Riverside Dr, Suite 5</div>
+            <div style="display:flex;align-items:center;gap:6px"><div class="b-prog"><i style="width:60%"></i></div><span class="cnt">6/10</span></div>
+          </div>
+          <div class="p-job">
+            <div class="top"><span class="nm">Bloom Café</span><span class="chip todo">To do</span></div>
+            <div class="ad">5 Market St</div>
+            <div style="display:flex;align-items:center;gap:6px"><div class="b-prog"><i style="width:0%"></i></div><span class="cnt">0/8</span></div>
+          </div>
+          <div class="p-tabs"><b>Jobs</b><span>Issues</span><span>Chat</span><span>Profile</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
 
 <section id="features">
   <div class="wrap">
