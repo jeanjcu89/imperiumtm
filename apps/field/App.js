@@ -11,6 +11,7 @@ import HomeScreen from './screens/HomeScreen.js';
 import JobDetailScreen from './screens/JobDetailScreen.js';
 import IssuesScreen from './screens/IssuesScreen.js';
 import ChatScreen from './screens/ChatScreen.js';
+import ProfileScreen from './screens/ProfileScreen.js';
 
 const Stack = createNativeStackNavigator();
 const navRef = createNavigationContainerRef();
@@ -19,6 +20,7 @@ const TABS = [
   { key: 'jobs', label: 'Jobs' },
   { key: 'issues', label: 'Issues' },
   { key: 'chat', label: 'Chat' },
+  { key: 'profile', label: 'Profile' },
 ];
 
 // Storyboard phone tab bar: white, top border, 9px dot + 10.5px label.
@@ -60,7 +62,9 @@ function Shell() {
               ? <IssuesScreen />
               : tab === 'chat'
                 ? <ChatScreen />
-                : <HomeScreen {...props} />}
+                : tab === 'profile'
+                  ? <ProfileScreen {...props} />
+                  : <HomeScreen {...props} />}
           </Stack.Screen>
           <Stack.Screen name="JobDetail" component={JobDetailScreen} />
         </Stack.Navigator>

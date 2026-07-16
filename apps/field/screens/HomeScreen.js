@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { prog, statusMeta } from '@imperium/shared';
+import { prog, statusMeta, ymd } from '@imperium/shared';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
 import { useData } from '../state/DataContext.js';
@@ -36,6 +36,10 @@ export default function HomeScreen({ navigation }) {
   const { profile } = useAuth();
   const { ready, jobs, clockedIn, clockStart, clockIn, clockOut } = useData();
   const [, setTick] = useState(0);
+
+  // The home screen is "today" only; the full week lives on the Profile tab.
+  const todayKey = ymd(new Date());
+  const todaysJobs = jobs.filter(j => j.scheduledDate === todayKey);
 
   // tick every second while on the clock
   useEffect(() => {
@@ -79,7 +83,7 @@ export default function HomeScreen({ navigation }) {
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={[styles.clockSide, { color: clock.fg }]}>Today</Text>
-              <Text style={[styles.clockSideBig, { color: clock.fg }]}>{jobs.length} job{jobs.length === 1 ? '' : 's'}</Text>
+              <Text style={[styles.clockSideBig, { color: clock.fg }]}>{todaysJobs.length} job{todaysJobs.length === 1 ? '' : 's'}</Text>
             </View>
           </View>
           <Pressable
@@ -93,10 +97,10 @@ export default function HomeScreen({ navigation }) {
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <Text style={styles.sectionTitle}>Today's jobs</Text>
-          <Text style={styles.sectionMeta}>{jobs.length} assigned</Text>
+          <Text style={styles.sectionMeta}>{todaysJobs.length} assigned</Text>
         </View>
 
-        {jobs.map(job => (
+        {todaysJobs.map(job => (
           <JobCard
             key={job.id}
             job={job}
@@ -104,10 +108,10 @@ export default function HomeScreen({ navigation }) {
           />
         ))}
 
-        {jobs.length === 0 ? (
+        {todaysJobs.length === 0 ? (
           <View style={[styles.card, { alignItems: 'center', paddingVertical: 26 }]}>
             <Text style={{ fontSize: 13, color: '#8a7d70' }}>
-              {ready ? 'No jobs assigned to you yet.' : 'Loading your jobs…'}
+              {ready ? 'No jobs scheduled for today.' : 'Loading your jobs…'}
             </Text>
           </View>
         ) : null}

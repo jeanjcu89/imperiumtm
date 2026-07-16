@@ -282,6 +282,24 @@ export const getPhotoUrl = (client, path, expiresIn = 3600) =>
   client.storage.from(PHOTO_BUCKET).createSignedUrl(path, expiresIn)
     .then(({ data, error }) => ({ data: data?.signedUrl ?? null, error }));
 
+// Issue photos share the job-photos bucket under `<company_id>/issues/…`, so
+// the company-scoped storage policies already apply. Uploaded before the issue
+// row is inserted (issues get a serial id we don't have yet), so the caller
+// passes the returned path to addIssue().
+export async function uploadIssuePhoto(client, { companyId, body, contentType = 'image/jpeg' }) {
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `${companyId}/issues/${Date.now()}-${rand}.jpg`;
+  const { error } = await client.storage.from(PHOTO_BUCKET)
+    .upload(path, body, { contentType, upsert: true });
+  return { data: error ? null : path, error };
+}
+
+// Compensating cleanup for uploadIssuePhoto when the issue insert then fails —
+// otherwise the object is orphaned (its path was never recorded in any row).
+// Best-effort: a failed delete just leaves the same orphan we'd have anyway.
+export const removePhoto = (client, path) =>
+  client.storage.from(PHOTO_BUCKET).remove([path]);
+
 /* ── clock ───────────────────────────────────────────────────────── */
 
 export const fetchOpenEntry = (client, employeeId) =>
@@ -315,18 +333,19 @@ export const closeEntryById = (client, entryId) =>
 
 export const fetchIssues = (client) =>
   client.from('issues')
-    .select('id, body, created_at, author:profiles ( full_name )')
+    .select('id, body, photo_path, created_at, author:profiles ( full_name )')
     .order('created_at', { ascending: false })
     .then(({ data, error }) => ({
       data: data?.map(r => ({
         id: r.id, text: r.body, meta: timeMeta(r.created_at),
         author: r.author?.full_name ?? '',
+        photoPath: r.photo_path ?? null,
       })) ?? null,
       error,
     }));
 
-export const addIssue = (client, { companyId, authorId, body }) =>
-  client.from('issues').insert({ company_id: companyId, author_id: authorId, body });
+export const addIssue = (client, { companyId, authorId, body, photoPath = null }) =>
+  client.from('issues').insert({ company_id: companyId, author_id: authorId, body, photo_path: photoPath });
 
 export const fetchMessages = (client, threadId) =>
   client.from('messages')

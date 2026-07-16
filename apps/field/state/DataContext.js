@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  fetchJobs, fetchIssues, fetchMessages, fetchOpenEntry,
-  setItemDone, setJobStatus, uploadItemPhoto, getPhotoUrl,
+  fetchJobs, fetchIssues, fetchMessages, fetchOpenEntry, fetchTimeEntries,
+  setItemDone, setJobStatus, uploadItemPhoto, uploadIssuePhoto, removePhoto, getPhotoUrl,
   clockIn as clockInRow, clockOut as clockOutRow, closeEntryById,
   addIssue as addIssueRow, sendMessage as sendMessageRow,
-  subscribeCompany, makeTicketed,
+  subscribeCompany, makeTicketed, startOfWeek, addDays,
 } from '@imperium/shared';
 import { useAuth } from './AuthContext.js';
 
@@ -19,6 +19,7 @@ export function DataProvider({ children }) {
   const [entry, setEntry] = useState(null); // { id, clockIn } while clocked in
   const [issues, setIssues] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [timeEntries, setTimeEntries] = useState([]); // my entries, last ~6 weeks
   const [ready, setReady] = useState(false);
   // Generation counter for the clock: bumped by every clock action so a
   // slow clock-in insert can detect it was superseded (e.g. by clock-out).
@@ -36,8 +37,15 @@ export function DataProvider({ children }) {
       () => fetchOpenEntry(client, profile.id)
         .then(({ data, error }) => ({ data: { open: data }, error })),
       ({ open }) => setEntry(open ? { id: open.id, clockIn: open.clock_in } : null));
+    // Six weeks of my own entries powers the Profile screen's weekly hours;
+    // fetchTimeEntries is company-scoped by RLS, so filter to me locally.
+    const sinceISO = addDays(startOfWeek(new Date()), -42).toISOString();
+    const loadEntries = ticketed('time_entries',
+      () => fetchTimeEntries(client, sinceISO)
+        .then(({ data, error }) => ({ data: (data ?? []).filter(e => e.employeeId === profile.id), error })),
+      setTimeEntries);
 
-    Promise.all([loadJobs(), loadIssues(), loadMessages(), loadEntry()])
+    Promise.all([loadJobs(), loadIssues(), loadMessages(), loadEntry(), loadEntries()])
       .then(() => setReady(true));
 
     const unsubscribe = subscribeCompany(client, profile.companyId, {
@@ -45,7 +53,7 @@ export function DataProvider({ children }) {
       checklist_items: loadJobs,
       issues: loadIssues,
       messages: loadMessages,
-      time_entries: loadEntry,
+      time_entries: () => { loadEntry(); loadEntries(); },
     });
     return unsubscribe;
   }, [client, profile?.id, profile?.companyId]);
@@ -56,7 +64,7 @@ export function DataProvider({ children }) {
   );
 
   const value = useMemo(() => ({
-    ready, jobs, issues, messages, entry,
+    ready, jobs, issues, messages, timeEntries, entry,
     clockedIn: !!entry,
     clockStart: entry?.clockIn ?? null,
 
@@ -148,16 +156,30 @@ export function DataProvider({ children }) {
       return { error };
     },
 
-    addIssue: async (body) => {
+    // `photoBody` is an optional ArrayBuffer (decoded base64 from the camera).
+    // Upload it first so the issue row can reference the stored path; if the
+    // upload fails we surface that and don't post a photo-less issue silently.
+    addIssue: async (body, photoBody) => {
+      let photoPath = null;
+      if (photoBody) {
+        const up = await uploadIssuePhoto(client, { companyId: profile.companyId, body: photoBody });
+        if (up.error) return { error: up.error };
+        photoPath = up.data;
+      }
       const tmpId = 'tmp-' + Date.now();
       setIssues(list => [
-        { id: tmpId, text: body, meta: 'Just now', author: profile.fullName },
+        { id: tmpId, text: body, meta: 'Just now', author: profile.fullName, photoPath },
         ...list,
       ]);
       const { error } = await addIssueRow(client, {
-        companyId: profile.companyId, authorId: profile.id, body,
+        companyId: profile.companyId, authorId: profile.id, body, photoPath,
       });
-      if (error) setIssues(list => list.filter(i => i.id !== tmpId));
+      if (error) {
+        setIssues(list => list.filter(i => i.id !== tmpId));
+        // The insert failed after the photo was stored: remove the object so a
+        // retry (which re-uploads to a fresh path) doesn't strand orphans.
+        if (photoPath) removePhoto(client, photoPath).catch(() => {});
+      }
       return { error };
     },
 
@@ -175,7 +197,7 @@ export function DataProvider({ children }) {
       if (error) setMessages(list => list.filter(m => m.id !== tmpId));
       return { error };
     },
-  }), [ready, jobs, issues, messages, entry, allJobs, client, profile]);
+  }), [ready, jobs, issues, messages, timeEntries, entry, allJobs, client, profile]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

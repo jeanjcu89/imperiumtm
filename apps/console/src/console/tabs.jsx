@@ -167,14 +167,15 @@ export function DashboardTab() {
               <div style={{ fontSize: 12.5, color: '#a1927f' }}>No issues reported yet.</div>
             )}
             {issues.slice(0, 8).map(a => (
-              <div key={a.id} style={{ display: 'flex', gap: 11 }}>
+              <div key={a.id} style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#c9922b', marginTop: 5, flex: 'none' }} />
-                <div style={{ lineHeight: 1.4 }}>
+                <div style={{ lineHeight: 1.4, flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: 13 }}>
                     <span style={{ fontWeight: 600 }}>{a.author}</span> {a.text}
                   </span>
                   <div style={{ fontSize: 10.5, color: '#a1927f', fontFamily: 'ui-monospace,monospace', marginTop: 2 }}>{a.meta}</div>
                 </div>
+                {a.photoPath && <IssuePhoto path={a.photoPath} />}
               </div>
             ))}
           </div>
@@ -454,6 +455,29 @@ function ItemPhoto({ path }) {
       width: '100%', height: 92, objectFit: 'cover', borderRadius: 10,
       border: '1px solid #e4d6c4', display: 'block',
     }} />
+  );
+}
+
+// Small square thumbnail for an issue photo; click opens the full signed URL.
+function IssuePhoto({ path }) {
+  const { client } = useAuth();
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    setUrl(null);
+    if (!client || !path) return undefined;
+    getPhotoUrl(client, path).then(({ data }) => { if (!cancelled && data) setUrl(data); });
+    return () => { cancelled = true; };
+  }, [client, path]);
+  return (
+    <a href={url ?? undefined} target="_blank" rel="noreferrer"
+      onClick={e => { if (!url) e.preventDefault(); }}
+      style={{
+        flex: 'none', width: 40, height: 40, borderRadius: 8, overflow: 'hidden',
+        border: '1px solid #e4d6c4', background: '#efe4d5', display: 'block',
+      }}>
+      {url ? <img src={url} alt="issue" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
+    </a>
   );
 }
 
