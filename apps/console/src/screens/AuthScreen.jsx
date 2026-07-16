@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signUpWithInvite } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
+import BrandMark from '../BrandMark.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
 
@@ -84,11 +85,7 @@ export default function AuthScreen() {
       }}>
         {/* logo block */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10, background: '#d96b2b',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontFamily: franklin, fontWeight: 800, fontSize: 20,
-          }}>I</div>
+          <BrandMark size={38} tile radius={10} />
           <div style={{ lineHeight: 1.15 }}>
             <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 18, color: '#2a211b' }}>Imperium</div>
             <div style={{ fontSize: 11, color: '#a1927f' }}>Manager console</div>

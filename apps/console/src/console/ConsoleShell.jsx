@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
 import useIsMobile from '../useIsMobile.js';
 import { navEntries, tabTitles } from './sampleData.js';
+import BrandMark from '../BrandMark.jsx';
 import NewJobModal from './NewJobModal.jsx';
 import InboxTab from './InboxTab.jsx';
 import IssuesTab from './IssuesTab.jsx';
@@ -75,11 +76,7 @@ function Sidebar({ tab, setTab, onNavigate }) {
       height: '100%',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '2px 6px 18px' }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: 8, background: '#d96b2b',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontFamily: franklin, fontWeight: 800, fontSize: 16,
-        }}>I</div>
+        <BrandMark size={30} tile radius={8} />
         <div style={{ fontFamily: franklin, fontWeight: 700, fontSize: 15, color: '#fff' }}>Imperium</div>
       </div>
       {NAV_ENTRIES.map(([key, label]) => {
