@@ -14,13 +14,17 @@ send work back.
 apps/
   field/        Expo (React Native) app for crews — iOS & Android
   console/      manager web app (Vite + React) — deployed on Netlify
+  landing/      static marketing site + privacy/support pages (deploy as its
+                own Netlify site: publish dir apps/landing, no build step)
   storyboard/   the original interactive design showcase (local demo data only)
 packages/
   shared/       the one data layer both apps use (Supabase client, queries,
                 photos, realtime, auth helpers)
 supabase/
-  migrations/   SQL — run in order: v2_multitenant then v3_clients_templates
-netlify.toml    builds apps/console
+  migrations/   SQL — run every file in filename order (v2 → v10)
+scripts/        operational SQL (e.g. refresh the App Review demo company)
+docs/           App Store submission metadata & checklists
+netlify.toml    builds apps/console; serves /privacy and /support
 ```
 
 ## How tenancy & auth work
@@ -36,12 +40,14 @@ netlify.toml    builds apps/console
 
 ## Setup
 
-1. **Database** — in the Supabase SQL editor, run these in order:
-   1. [20260711000000_v2_multitenant.sql](supabase/migrations/20260711000000_v2_multitenant.sql)
-      — ⚠️ replaces the old v1 demo tables (drops them and their data).
-   2. [20260715000000_v3_clients_templates_schedule.sql](supabase/migrations/20260715000000_v3_clients_templates_schedule.sql)
-      — adds clients, checklist templates and scheduling. Additive and
-      re-runnable; it never touches live job/crew data.
+1. **Database** — in the Supabase SQL editor, run every file in
+   [supabase/migrations](supabase/migrations) in filename order.
+   ⚠️ v2 replaces the old v1 demo tables (drops them and their data); every
+   migration after it is additive and re-runnable. The sequence: v2
+   multitenant core → v3 clients/templates/schedule → v4 estimates &
+   recurrence → v5 realtime deletes → v6 issue photos → v7 issue replies →
+   v8 settings/onboarding → v9 profile-column protection → v10 account
+   deletion.
 2. **Auth setting** — Supabase → Authentication → Sign In / Providers → Email:
    for frictionless testing turn **Confirm email off** (or leave it on — both
    apps show a "check your email" notice after signup).
@@ -78,22 +84,27 @@ variables.
 
 ## Current scope
 
-Everything in the console now runs on live Supabase data — no sample data left.
+Everything runs on live Supabase data — no sample data left.
 
 Live end-to-end: company signup, invite codes, crew clock in/out, jobs +
-checklists, **real photo proof** (camera → Supabase Storage → manager review),
-submit → approve / send back, issues, chat.
+checklists, **timestamped photo proof** (camera → Supabase Storage → manager
+review with lightbox), submit → approve / send back, issues **with photos and
+manager replies**, chat.
 
-The **v3** build-out (see the migration above) makes the last five tabs real:
+Console: Dashboard (with a first-run getting-started checklist + guided
+tour), Schedule (week & month views, client/worker/status filters, recurring
+jobs — weekly/biweekly/monthly — and estimated hours), Jobs (click through to
+per-task completion state), Review, Issues (reply & resolve), Inbox, Hours,
+Clients & Templates (full CRUD with quick-add task pills), Reports, Help, and
+Settings (profile, password, company; team member editing incl. roles &
+deactivation).
 
-- **Clients** — a client book with full CRUD; jobs can link to a client.
-- **Templates** — reusable checklist templates; the New Job modal can start
-  from one.
-- **Schedule** — a live week grid of jobs by crew and day; click an empty cell
-  to create a job pre-filled with that person and date.
-- **Hours** — weekly timesheets aggregated from real clock in/out entries.
-- **Reports** — approvals, photo compliance and hours logged, derived from
-  live jobs and time entries.
+Field app: today's jobs, checklist + photo proof with visible timestamps,
+full-screen photo viewer, issues with photos and manager replies, chat, and a
+Profile tab (weekly schedule, hours, name editing, account deletion).
 
-Next candidates: surfacing scheduled dates and templates in the field app, and
-exportable reports.
+Store readiness: brand icons & splash, privacy/support pages, in-app account
+deletion (App Store 5.1.1(v)), landing site in apps/landing, and submission
+metadata in [docs/app-store-metadata.md](docs/app-store-metadata.md).
+
+Next candidates: exportable reports, password reset, and Android/Play Store.
