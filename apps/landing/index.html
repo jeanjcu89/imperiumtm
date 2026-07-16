@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imperium Task Manager — photo-verified field work for cleaning crews</title>
+<meta name="description" content="Schedule cleaning jobs, get timestamped photo proof of every completed task, track hours, and handle field issues — a mobile app for crews and a live console for managers.">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #2a211b; --mut: #8a7d70; --faint: #a1927f; --line: #ece5db; --bg: #faf7f2; --card: #fff; --orange: #d96b2b; --brown: #3a2c20; --cream: #f3ead9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .franklin { font-family: "Libre Franklin", sans-serif; }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
+
+  header { border-bottom: 1px solid var(--line); background: var(--bg); }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 17px; }
+  .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--cream); display: flex; align-items: center; justify-content: center; flex: none; }
+  .nav a { color: var(--mut); text-decoration: none; font-weight: 600; font-size: 13.5px; margin-left: 22px; }
+  .nav a:hover { color: var(--orange); }
+
+  .hero { padding: 72px 0 60px; text-align: center; }
+  .hero h1 { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: clamp(30px, 5vw, 46px); line-height: 1.12; margin: 0 auto 18px; max-width: 720px; }
+  .hero h1 em { color: var(--orange); font-style: normal; }
+  .hero p { color: var(--mut); max-width: 560px; margin: 0 auto 30px; font-size: 17px; }
+  .cta { display: inline-flex; align-items: center; gap: 10px; background: var(--brown); color: #fff; border-radius: 12px; padding: 13px 24px; text-decoration: none; font-weight: 700; font-size: 14.5px; font-family: "Libre Franklin", sans-serif; }
+  .cta small { display: block; text-align: left; font-weight: 600; font-size: 10px; color: #cbb9a2; letter-spacing: .04em; }
+  .cta span { display: block; }
+  .subcta { color: var(--faint); font-size: 12.5px; margin-top: 14px; }
+
+  .band { background: var(--brown); color: #e8ddce; padding: 64px 0; }
+  .band h2, section h2 { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 26px; margin: 0 0 8px; }
+  .band .sub, section .sub { color: var(--faint); margin: 0 0 34px; }
+  .band .sub { color: #b6a48f; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .tile { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 20px; }
+  .tile h3 { font-family: "Libre Franklin", sans-serif; font-size: 15.5px; margin: 0 0 6px; color: #fff; }
+  .tile p { font-size: 13.5px; color: #cbb9a2; margin: 0; line-height: 1.6; }
+  .tile .dot { width: 34px; height: 34px; border-radius: 9px; background: var(--orange); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+
+  section { padding: 64px 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .card h3 { font-family: "Libre Franklin", sans-serif; font-size: 16px; margin: 0 0 8px; }
+  .card p { font-size: 14px; color: var(--mut); margin: 0; }
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--orange); background: #f6e0d0; border-radius: 20px; padding: 4px 10px; margin-bottom: 12px; }
+
+  .proof { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
+  @media (max-width: 760px) { .proof { grid-template-columns: 1fr; } }
+  .shot { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .shot .ph-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  .shot .ck { width: 20px; height: 20px; border-radius: 6px; background: var(--orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex: none; }
+  .shot .lbl { flex: 1; font-size: 13px; font-weight: 600; }
+  .shot .tm { font-size: 11px; font-weight: 700; color: var(--orange); font-variant-numeric: tabular-nums; }
+
+  footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--faint); font-size: 13px; }
+  .foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+  footer a { color: var(--mut); text-decoration: none; font-weight: 600; margin-right: 18px; }
+  footer a:hover { color: var(--orange); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="27" height="27"><defs><mask id="chk"><rect width="100" height="100" fill="#fff"/><path d="M38,58 L47,67 L64,48" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="36" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"/><rect x="46.5" y="8" width="7" height="22" rx="3.5" fill="#d96b2b"/><rect x="57" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"/><path d="M50,34 L78,44 L78,62 Q78,80 50,90 Q22,80 22,62 L22,44 Z" fill="#3a2c20" mask="url(#chk)"/></svg></div>
+      Imperium
+    </div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="./support.html">Support</a>
+      <a href="./privacy.html">Privacy</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero wrap">
+  <h1 class="franklin">Every job done. <em>Proven</em>, with a timestamp.</h1>
+  <p>Imperium runs your cleaning operation end to end: crews work from their
+  phones with photo proof on every task, and managers watch it land live —
+  schedules, timesheets, issues, and approvals in one place.</p>
+  <a class="cta" href="#" aria-disabled="true"><span style="font-size:22px">&#63743;</span><span><small>COMING SOON ON THE</small>App Store</span></a>
+  <div class="subcta">Manager console runs in any browser · crew app on iPhone</div>
+</div>
+
+<div class="band">
+  <div class="wrap">
+    <h2>Built around proof of work</h2>
+    <p class="sub">Not another to-do list — a verification loop between the field and the office.</p>
+    <div class="cols">
+      <div class="tile"><div class="dot">📷</div><h3>Photo proof per task</h3><p>Crew attach a photo to each checklist item. Every photo carries the exact time it was taken — that's your evidence of when work was completed.</p></div>
+      <div class="tile"><div class="dot">✓</div><h3>Review &amp; approve</h3><p>Submitted jobs land in a review queue with full-size photos and timestamps. Approve, or send back with one click.</p></div>
+      <div class="tile"><div class="dot">🕐</div><h3>Hours that track themselves</h3><p>Clock in and out from the phone; weekly timesheets and reports build themselves from real entries.</p></div>
+      <div class="tile"><div class="dot">⚠️</div><h3>Issues, handled</h3><p>Missing supplies, damage, locked doors — crew flag it with a photo, managers reply, workers see the answer instantly.</p></div>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Two apps, one live system</h2>
+    <p class="sub">Everything the crew does appears on the manager's screen in real time — no refreshing, no phone calls.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="badge">Manager console · web</span>
+        <h3>Plan, watch, approve</h3>
+        <p>A client book, reusable checklist templates, week and month schedules
+        with recurring jobs (weekly, biweekly, monthly), estimated durations,
+        live progress on every job, photo review, team management with invite
+        codes, timesheets, and reports.</p>
+      </div>
+      <div class="card">
+        <span class="badge">Field app · iPhone</span>
+        <h3>Today's work, nothing else</h3>
+        <p>Crew see just their day: clock in, work the checklist, snap proof
+        photos, report issues, chat with the office, and check their weekly
+        schedule and hours on their profile.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0">
+  <div class="wrap">
+    <div class="proof">
+      <div>
+        <h2 class="franklin" style="font-size:22px; margin-bottom:8px">The timestamp is the point</h2>
+        <p style="color:var(--mut); font-size:14.5px; margin:0">When a client asks
+        "was it actually done?", you answer with a photo and the minute it was
+        taken. Imperium keeps that proof attached to the job, the task, and the
+        person — forever searchable, never lost in a text thread.</p>
+      </div>
+      <div class="shot">
+        <div class="ph-row"><div class="ck">✓</div><div class="lbl">Restrooms sanitized</div><div class="tm">Today · 2:41 PM</div></div>
+        <div class="ph-row"><div class="ck">✓</div><div class="lbl">Kitchen / breakroom</div><div class="tm">Today · 3:05 PM</div></div>
+        <div class="ph-row"><div class="ck">✓</div><div class="lbl">Floors mopped &amp; bins</div><div class="tm">Today · 3:22 PM</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 Margian · Imperium Task Manager</div>
+    <div>
+      <a href="./support.html">Support</a>
+      <a href="./privacy.html">Privacy policy</a>
+      <a href="mailto:info@margian.co">info@margian.co</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
