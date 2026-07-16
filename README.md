@@ -14,8 +14,9 @@ send work back.
 apps/
   field/        Expo (React Native) app for crews — iOS & Android
   console/      manager web app (Vite + React) — deployed on Netlify
-  landing/      static marketing site + privacy/support pages (deploy as its
-                own Netlify site: publish dir apps/landing, no build step)
+  landing/      static marketing site + privacy/support pages — its own
+                Netlify site at imperiumtm.com (base dir apps/landing; the
+                console lives at app.imperiumtm.com)
   storyboard/   the original interactive design showcase (local demo data only)
 packages/
   shared/       the one data layer both apps use (Supabase client, queries,

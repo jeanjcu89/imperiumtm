@@ -1,0 +1,21 @@
+# Landing site (imperiumtm.com). Deployed as its own Netlify site:
+#   Base directory: apps/landing · no build command · publish "."
+[build]
+  publish = "."
+
+# Pretty URLs — these are the canonical links used in App Store Connect.
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/support"
+  to = "/support.html"
+  status = 200
+
+# Convenience: imperiumtm.com/app → the manager console.
+[[redirects]]
+  from = "/app"
+  to = "https://app.imperiumtm.com"
+  status = 302

@@ -1,7 +1,9 @@
 # App Store Connect — paste-ready metadata
 
-Everything below fits Apple's field limits. Fill in the two `<placeholders>`
-before submitting.
+Everything below fits Apple's field limits. URLs are live: the landing site
+owns imperiumtm.com (privacy/support), the console runs at
+app.imperiumtm.com. Only the review-account `<placeholders>` remain to fill
+in before submitting.
 
 ## App Information
 
@@ -12,8 +14,8 @@ before submitting.
 | Primary category | Business |
 | Secondary category | Productivity |
 | Copyright | `© 2026 Margian Digital LLC` |
-| Privacy Policy URL | `https://<console-domain>/privacy` |
-| Support URL | `https://<console-domain>/support` |
+| Privacy Policy URL | `https://imperiumtm.com/privacy` |
+| Support URL | `https://imperiumtm.com/support` |
 
 ## Keywords (100 chars max — this is 89)
 
@@ -85,7 +87,7 @@ All questionnaire answers "None" → **4+**.
 
 ```
 Imperium Field is the employee app of a two-part system; managers use a
-companion web console (https://<console-domain>).
+companion web console (https://app.imperiumtm.com).
 
 The demo crew account above is pre-loaded with jobs scheduled for today.
 Typical flow: sign in → Clock in → open a job → check off tasks, attaching a
