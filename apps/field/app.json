@@ -12,6 +12,15 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#e8ddce"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "Imperium Field uses the camera to attach photos of completed work and reported issues to jobs.",

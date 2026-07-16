@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <mask id="chk">
+      <rect width="100" height="100" fill="#fff"></rect>
+      <path d="M38,58 L47,67 L64,48" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+    </mask>
+  </defs>
+  <rect x="36" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"></rect>
+  <rect x="46.5" y="8" width="7" height="22" rx="3.5" fill="#d96b2b"></rect>
+  <rect x="57" y="16" width="7" height="14" rx="3.5" fill="#d96b2b"></rect>
+  <path d="M50,34 L78,44 L78,62 Q78,80 50,90 Q22,80 22,62 L22,44 Z" fill="#3a2c20" mask="url(#chk)"></path>
+</svg>
