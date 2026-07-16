@@ -36,12 +36,18 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, [session?.user?.id]);
 
+  // Re-pull the profile after Settings edits so the sidebar (name, company)
+  // updates without a reload.
+  const refreshProfile = () =>
+    fetchProfile(client).then(({ data }) => { if (data) setProfile(data); });
+
   const value = {
     client,
     configured: !!client,
     session,
     profile,
     loading,
+    refreshProfile,
     signIn: (creds) => signIn(client, creds),
     signUpCompany: (params) => signUpCompany(client, params),
     signOut: () => signOut(client),

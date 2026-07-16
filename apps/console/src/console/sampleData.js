@@ -12,6 +12,8 @@ export const tabTitles = {
   clients: ['Clients & locations', 'Sites and their checklists'],
   templates: ['Checklist templates', 'Reusable task lists by service type'],
   reports: ['Reports', 'Performance analytics'],
+  help: ['Help', 'Guides for every part of the console'],
+  settings: ['Settings', 'Your profile and company details'],
 };
 
 export const navEntries = [
@@ -25,4 +27,6 @@ export const navEntries = [
   ['clients', 'Clients'],
   ['templates', 'Checklist templates'],
   ['reports', 'Reports'],
+  ['help', 'Help'],
+  ['settings', 'Settings'],
 ];

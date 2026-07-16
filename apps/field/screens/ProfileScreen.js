@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { statusMeta, ymd, startOfWeek, addDays, entryHours, initials } from '@imperium/shared';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { statusMeta, ymd, startOfWeek, addDays, entryHours, initials, updateOwnName } from '@imperium/shared';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
 import { useData } from '../state/DataContext.js';
@@ -10,10 +10,25 @@ const shortDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'n
 const fmtHours = (h) => h > 0 ? `${h.toFixed(1)}h` : '—';
 
 export default function ProfileScreen({ navigation }) {
-  const { profile, signOut } = useAuth();
+  const { client, profile, signOut, refreshProfile } = useAuth();
   const { jobs, timeEntries } = useData();
   // -6 clamp keeps paging inside the six-week window DataContext fetches.
   const [offset, setOffset] = useState(0);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  const startNameEdit = () => { setNameDraft(profile?.fullName ?? ''); setEditingName(true); };
+  const saveName = async () => {
+    const next = nameDraft.trim();
+    if (!next || savingName) return;
+    setSavingName(true);
+    const { error } = (await updateOwnName(client, profile.id, next)) ?? {};
+    if (!error) await refreshProfile();
+    setSavingName(false);
+    if (error) { Alert.alert('Name not saved', 'Check your connection and try again.'); return; }
+    setEditingName(false);
+  };
 
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
   const days = useMemo(() => DAY_NAMES.map((name, i) => {
@@ -56,9 +71,34 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.avatarTxt}>{initials(profile?.fullName ?? '')}</Text>
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.name}>{profile?.fullName ?? 'You'}</Text>
+              {editingName ? (
+                <TextInput
+                  value={nameDraft}
+                  onChangeText={setNameDraft}
+                  autoFocus
+                  style={styles.nameInput}
+                  placeholder="Your name"
+                  placeholderTextColor="#a1927f"
+                />
+              ) : (
+                <Text style={styles.name}>{profile?.fullName ?? 'You'}</Text>
+              )}
               <Text style={styles.role}>{profile?.role === 'manager' ? 'Manager' : 'Crew'}{profile?.companyName ? ` · ${profile.companyName}` : ''}</Text>
             </View>
+            {editingName ? (
+              <View style={{ gap: 6 }}>
+                <Pressable onPress={saveName} disabled={savingName || !nameDraft.trim()} style={[styles.nameBtn, { backgroundColor: '#d96b2b', borderColor: '#d96b2b', opacity: savingName || !nameDraft.trim() ? 0.6 : 1 }]}>
+                  <Text style={[styles.nameBtnTxt, { color: '#fff' }]}>{savingName ? 'Saving…' : 'Save'}</Text>
+                </Pressable>
+                <Pressable onPress={() => setEditingName(false)} style={styles.nameBtn}>
+                  <Text style={styles.nameBtnTxt}>Cancel</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={startNameEdit} style={styles.nameBtn}>
+                <Text style={styles.nameBtnTxt}>Edit</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -140,6 +180,15 @@ const styles = StyleSheet.create({
   },
   avatarTxt: { fontWeight: '700', color: '#b85618', fontSize: 16 },
   name: { fontWeight: '800', fontSize: 17, color: '#2a211b' },
+  nameInput: {
+    fontWeight: '800', fontSize: 17, color: '#2a211b', padding: 0, margin: 0,
+    borderBottomWidth: 2, borderBottomColor: '#d96b2b',
+  },
+  nameBtn: {
+    borderWidth: 1, borderColor: '#e0d3c2', backgroundColor: '#fff',
+    borderRadius: 8, paddingVertical: 6, paddingHorizontal: 13,
+  },
+  nameBtnTxt: { fontSize: 12, fontWeight: '700', color: '#8a7d70' },
   role: { fontSize: 12, color: '#8a7d70', marginTop: 2 },
   cardLabel: { fontSize: 10.5, letterSpacing: 0.6, fontWeight: '700', color: '#a1927f' },
   hoursBig: { fontWeight: '800', fontSize: 30, color: '#2a211b', marginTop: 4, fontVariant: ['tabular-nums'] },

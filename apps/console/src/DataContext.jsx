@@ -5,7 +5,7 @@ import {
   createJobs, setJobStatus, resetJobItems, deleteJob, createInvite,
   addClient, updateClient, deleteClient,
   addTemplate, updateTemplate, deleteTemplate,
-  replyToIssue, setIssueResolved,
+  replyToIssue, setIssueResolved, updateMember,
   subscribeCompany, makeTicketed, startOfWeek, addDays,
 } from '@imperium/shared';
 import { useAuth } from './AuthContext.jsx';
@@ -80,6 +80,7 @@ export function DataProvider({ children }) {
     deleteTemplate: (id) => deleteTemplate(client, id),
     replyToIssue: (id, reply) => replyToIssue(client, { id, reply, repliedBy: profile.id }),
     setIssueResolved: (id, resolved) => setIssueResolved(client, id, resolved),
+    updateMember: (id, patch) => updateMember(client, id, patch),
   }), [ready, jobs, team, issues, invites, clients, templates, timeEntries,
     messagesVersion, client, profile?.companyId, profile?.id]);
 

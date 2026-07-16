@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   statusMeta, prog, timeMeta, photoTimestamp, initials,
-  ymd, startOfWeek, addDays, entryHours,
+  ymd, startOfWeek, addDays, entryHours, setOnboarded,
 } from '@imperium/shared';
+import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
 import useIsMobile from '../useIsMobile.js';
 import ClientModal from './ClientModal.jsx';
 import TemplateModal from './TemplateModal.jsx';
 import JobDetailModal from './JobDetailModal.jsx';
+import MemberModal from './MemberModal.jsx';
 import { Lightbox, ItemPhoto, IssuePhoto } from './photos.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
@@ -110,10 +112,72 @@ const emptyState = (title, sub) => (
 
 /* ── Dashboard (live) ──────────────────────────────────────── */
 
-export function DashboardTab({ navigateTo }) {
+// First-run checklist for managers who haven't finished onboarding. Steps
+// check themselves off from live data; the tour and Dismiss both retire it.
+function GettingStartedCard({ navigateTo, startTour }) {
+  const { client, profile, refreshProfile } = useAuth();
+  const { jobs, team, clients, templates } = useData();
+
+  const steps = [
+    { label: 'Add a client', done: clients.length > 0, tab: 'clients' },
+    { label: 'Create a checklist template', done: templates.length > 0, tab: 'templates' },
+    { label: 'Invite your crew', done: team.some(p => p.role === 'crew'), tab: 'team' },
+    { label: 'Schedule your first job', done: jobs.length > 0, tab: 'schedule' },
+    { label: 'Approve your first job', done: jobs.some(j => j.status === 'approved'), tab: 'review' },
+  ];
+  const doneCount = steps.filter(s => s.done).length;
+
+  const dismiss = async () => {
+    await setOnboarded(client, profile.id);
+    refreshProfile();
+  };
+
+  return (
+    <div style={{
+      ...card, padding: 18, marginBottom: 18,
+      borderColor: '#e8cfae', background: '#fdf8f1',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 16 }}>Getting started</div>
+          <div style={{ fontSize: 12.5, color: '#8a7d70', marginTop: 3 }}>
+            {doneCount}/{steps.length} done — these tick themselves off as you go.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
+          <button onClick={startTour} style={{
+            border: 'none', background: '#d96b2b', color: '#fff', fontWeight: 700,
+            fontSize: 12, borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+          }}>Take the tour</button>
+          <button onClick={dismiss} style={{
+            border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+            fontWeight: 700, fontSize: 12, borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+          }}>Dismiss</button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 13 }}>
+        {steps.map(s => (
+          <button key={s.label} onClick={() => navigateTo(s.tab)} style={{
+            display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+            border: s.done ? 'none' : '1px solid #e7d8c5',
+            background: s.done ? '#e2efe5' : '#fff',
+            color: s.done ? '#4f8a5b' : '#8a7d70',
+            fontWeight: 600, fontSize: 12, borderRadius: 20, padding: '6px 12px',
+          }}>
+            <span style={{ fontWeight: 800 }}>{s.done ? '✓' : '○'}</span> {s.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function DashboardTab({ navigateTo, startTour }) {
+  const { profile } = useAuth();
   const { jobs, team, issues } = useData();
   const isMobile = useIsMobile();
   const [lightbox, setLightbox] = useState(null); // { path, title, sub, takenAt }
+  const showGettingStarted = profile.role === 'manager' && !profile.onboardedAt;
   const activeCount = jobs.filter(j => j.status === 'inprogress' || j.status === 'todo').length;
   const approvedCount = jobs.filter(j => j.status === 'approved').length;
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
@@ -127,6 +191,7 @@ export function DashboardTab({ navigateTo }) {
 
   return (
     <>
+      {showGettingStarted && <GettingStartedCard navigateTo={navigateTo} startTour={startTour} />}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? 10 : 14, marginBottom: 20 }}>
         {stats.map(s => (
           <div key={s.label} style={{ ...card, padding: isMobile ? 13 : 16 }}>
@@ -426,27 +491,36 @@ function InviteCodesCard() {
 export function TeamTab() {
   const { team } = useData();
   const isMobile = useIsMobile();
+  const [editing, setEditing] = useState(null); // team member being edited
 
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14 }}>
         {team.map(p => (
-          <div key={p.id} style={{ ...card, padding: 16 }}>
+          <div key={p.id} style={{ ...card, padding: 16, opacity: p.active ? 1 : 0.65 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <div style={{
                 width: 44, height: 44, borderRadius: '50%', background: '#f3e2d2',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#b85618',
               }}>{p.initials}</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 11.5, color: '#a1927f' }}>{roleLabel(p.role)}</div>
+                <div style={{ fontSize: 11.5, color: '#a1927f' }}>
+                  {roleLabel(p.role)}{p.active ? '' : ' · inactive'}
+                </div>
               </div>
-              <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.active ? '#4f8a5b' : '#d8c5ad' }} />
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.active ? '#4f8a5b' : '#d8c5ad', flex: 'none' }} />
+              <button onClick={() => setEditing(p)} style={{
+                border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+                fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px',
+                cursor: 'pointer', flex: 'none',
+              }}>Edit</button>
             </div>
           </div>
         ))}
       </div>
       <InviteCodesCard />
+      {editing && <MemberModal member={editing} onClose={() => setEditing(null)} />}
     </>
   );
 }

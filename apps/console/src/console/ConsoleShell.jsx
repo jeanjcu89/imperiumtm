@@ -7,6 +7,10 @@ import { navEntries, tabTitles } from './sampleData.js';
 import NewJobModal from './NewJobModal.jsx';
 import InboxTab from './InboxTab.jsx';
 import IssuesTab from './IssuesTab.jsx';
+import HelpTab from './HelpTab.jsx';
+import SettingsTab from './SettingsTab.jsx';
+import TourCard from './TourCard.jsx';
+import { setOnboarded } from '@imperium/shared';
 import {
   DashboardTab, JobsTab, TeamTab, ReviewTab, HoursTab,
   ClientsTab, ScheduleTab, TemplatesTab, ReportsTab,
@@ -26,6 +30,8 @@ const TAB_VIEWS = {
   clients: ClientsTab,
   templates: TemplatesTab,
   reports: ReportsTab,
+  help: HelpTab,
+  settings: SettingsTab,
 };
 
 // Inbox sits right after Issues in the nav (review · issues · inbox).
@@ -123,12 +129,26 @@ function Sidebar({ tab, setTab, onNavigate }) {
 }
 
 export default function ConsoleShell() {
+  const { client, profile, refreshProfile } = useAuth();
   const { ready } = useData();
   const isMobile = useIsMobile();
   const [route, setRoute] = useState(routeFromHash);
   // null = closed; an object (possibly empty) = open, carrying modal prefill.
   const [newJob, setNewJob] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // null = no tour; a number = the current tour step.
+  const [tourStep, setTourStep] = useState(null);
+
+  const startTour = () => setTourStep(0);
+  // Finishing or skipping marks the manager onboarded, so the dashboard's
+  // getting-started card stops nagging; Help keeps a replay button.
+  const endTour = async () => {
+    setTourStep(null);
+    if (!profile.onboardedAt) {
+      await setOnboarded(client, profile.id);
+      refreshProfile();
+    }
+  };
 
   // Writing the hash keeps the route through a refresh; the hashchange
   // listener keeps state in sync when back/forward moves the hash.
@@ -198,11 +218,14 @@ export default function ConsoleShell() {
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px 24px' : '22px 24px 30px' }}>
           {ready
-            ? <View openNewJob={openNewJob} param={param} navigateTo={navigateTo} />
+            ? <View openNewJob={openNewJob} param={param} navigateTo={navigateTo} startTour={startTour} />
             : <div style={{ color: '#a1927f', fontSize: 13 }}>Loading live data…</div>}
         </div>
       </div>
       {newJob && <NewJobModal prefill={newJob} onClose={() => setNewJob(null)} />}
+      {tourStep !== null && (
+        <TourCard step={tourStep} setStep={setTourStep} navigateTo={navigateTo} onEnd={endTour} />
+      )}
     </div>
   );
 }

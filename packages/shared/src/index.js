@@ -172,17 +172,52 @@ export const fetchProfile = (client) =>
   client.auth.getUser().then(({ data, error }) => {
     if (error || !data.user) return { data: null, error };
     return client.from('profiles')
-      .select('id, company_id, full_name, role, active, companies ( name )')
+      .select('id, company_id, full_name, role, active, onboarded_at, companies ( name )')
       .eq('id', data.user.id)
       .single()
       .then(({ data: p, error: e }) => ({
         data: p && {
           id: p.id, companyId: p.company_id, fullName: p.full_name,
           role: p.role, active: p.active, companyName: p.companies?.name ?? '',
+          email: data.user.email ?? '',
+          onboardedAt: p.onboarded_at ?? null,
         },
         error: e,
       }));
   });
+
+/* ── settings (profile & company) ────────────────────────────────── */
+
+export const updateOwnName = (client, userId, fullName) =>
+  client.from('profiles').update({ full_name: fullName }).eq('id', userId);
+
+// Manager edits a team member's profile: rename, change role, (de)activate.
+export const updateMember = (client, id, { fullName, role, active }) =>
+  client.from('profiles').update({
+    ...(fullName !== undefined ? { full_name: fullName } : {}),
+    ...(role !== undefined ? { role } : {}),
+    ...(active !== undefined ? { active } : {}),
+  }).eq('id', id);
+
+// Set when a manager finishes or dismisses the getting-started tour.
+export const setOnboarded = (client, userId) =>
+  client.from('profiles').update({ onboarded_at: new Date().toISOString() }).eq('id', userId);
+
+export const changePassword = (client, newPassword) =>
+  client.auth.updateUser({ password: newPassword });
+
+export const fetchCompany = (client, companyId) =>
+  client.from('companies')
+    .select('id, name, address, phone')
+    .eq('id', companyId)
+    .single()
+    .then(({ data, error }) => ({
+      data: data && { id: data.id, name: data.name, address: data.address ?? '', phone: data.phone ?? '' },
+      error,
+    }));
+
+export const updateCompany = (client, companyId, { name, address, phone }) =>
+  client.from('companies').update({ name, address, phone }).eq('id', companyId);
 
 /* ── jobs & checklist ────────────────────────────────────────────── */
 

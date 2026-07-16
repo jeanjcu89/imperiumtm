@@ -38,12 +38,17 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, [session?.user?.id]);
 
+  // Re-pull the profile after a name edit so headers update without a reload.
+  const refreshProfile = () =>
+    fetchProfile(client).then(({ data }) => { if (data) setProfile(data); });
+
   const value = {
     client,
     configured: !!client,
     session,
     profile,
     loading,
+    refreshProfile,
     signIn: (creds) => signIn(client, creds),
     signUpWithInvite: (params) => signUpWithInvite(client, params),
     signOut: () => signOut(client),
