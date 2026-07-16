@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:storyboard"],
       "port": 5174
+    },
+    {
+      "name": "field-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/static-server.js", "apps/field/dist", "8099"],
+      "port": 8099
     }
   ]
 }

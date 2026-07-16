@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { statusMeta, ymd, startOfWeek, addDays, entryHours, initials, updateOwnName, deleteOwnAccount } from '@imperium/shared';
+import { confirmDestructive, notify } from '../lib/dialogs.js';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
 import { useData } from '../state/DataContext.js';
@@ -23,21 +24,19 @@ export default function ProfileScreen({ navigation }) {
   // Apple 5.1.1(v): accounts created in-app must be deletable in-app.
   // Two-step confirm; the RPC enforces the last-manager guard server-side.
   const confirmDeleteAccount = () => {
-    Alert.alert(
-      'Delete your account?',
-      'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete account', style: 'destructive', onPress: doDeleteAccount },
-      ],
-    );
+    confirmDestructive({
+      title: 'Delete your account?',
+      message: 'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
+      actionLabel: 'Delete account',
+      onConfirm: doDeleteAccount,
+    });
   };
   const doDeleteAccount = async () => {
     setDeleting(true);
     const { error } = (await deleteOwnAccount(client)) ?? {};
     setDeleting(false);
     if (error) {
-      Alert.alert('Account not deleted', error.message);
+      notify('Account not deleted', error.message);
       return;
     }
     signOut();   // session's user no longer exists; drop to the sign-in screen
@@ -51,7 +50,7 @@ export default function ProfileScreen({ navigation }) {
     const { error } = (await updateOwnName(client, profile.id, next)) ?? {};
     if (!error) await refreshProfile();
     setSavingName(false);
-    if (error) { Alert.alert('Name not saved', 'Check your connection and try again.'); return; }
+    if (error) { notify('Name not saved', 'Check your connection and try again.'); return; }
     setEditingName(false);
   };
 

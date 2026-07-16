@@ -1,0 +1,20 @@
+# Crew app on the web (e.g. crew.imperiumtm.com) — a stopgap while the store
+# builds are in review, and a fallback for crew on any device.
+#
+# Deploy as its own Netlify site from this repo:
+#   Base directory: apps/field
+#   Environment variables (Site configuration → Environment variables):
+#     EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
+#   (they're inlined into the bundle at build time — the local .env never
+#   leaves your machine)
+
+[build]
+  # Install at the workspace root so @imperium/shared resolves, then export.
+  command = "cd ../.. && npm install --no-audit --no-fund && cd apps/field && npx expo export --platform web"
+  publish = "dist"
+
+# Single-page app: serve index.html for every route.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { deleteOwnAccount } from '@imperium/shared';
+import { confirmDestructive, notify } from './lib/dialogs.js';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer, createNavigationContainerRef, StackActions } from '@react-navigation/native';
@@ -85,21 +86,16 @@ function Gate() {
   // Apple 5.1.1(v): account deletion must stay reachable even for members a
   // manager has deactivated — this screen is all they can see.
   const confirmDelete = () => {
-    Alert.alert(
-      'Delete your account?',
-      'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete account', style: 'destructive',
-          onPress: async () => {
-            const { error } = (await deleteOwnAccount(client)) ?? {};
-            if (error) { Alert.alert('Account not deleted', error.message); return; }
-            signOut();
-          },
-        },
-      ],
-    );
+    confirmDestructive({
+      title: 'Delete your account?',
+      message: 'This permanently deletes your account, sign-in, and personal data (hours, issue reports, messages). It cannot be undone.',
+      actionLabel: 'Delete account',
+      onConfirm: async () => {
+        const { error } = (await deleteOwnAccount(client)) ?? {};
+        if (error) { notify('Account not deleted', error.message); return; }
+        signOut();
+      },
+    });
   };
 
   if (!configured) {

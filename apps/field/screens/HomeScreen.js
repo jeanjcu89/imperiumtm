@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { notify } from '../lib/dialogs.js';
 import { prog, statusMeta, ymd } from '@imperium/shared';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
@@ -65,7 +66,7 @@ export default function HomeScreen({ navigation }) {
     if (!ready) return;
     const { error } = (await (clockedIn ? clockOut() : clockIn())) ?? {};
     if (error) {
-      Alert.alert('Clock', `Could not ${clockedIn ? 'clock out' : 'clock in'} — check your connection and try again.`);
+      notify('Clock', `Could not ${clockedIn ? 'clock out' : 'clock in'} — check your connection and try again.`);
     }
   };
 

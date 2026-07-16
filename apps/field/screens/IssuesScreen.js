@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
-} from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { notify } from '../lib/dialogs.js';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { timeMeta } from '@imperium/shared';
@@ -64,7 +62,7 @@ export default function IssuesScreen() {
     const { error } = (await addIssue(t, body)) ?? {};
     setSending(false);
     if (error) {
-      Alert.alert('Issue not sent', 'Check your connection and try again.');
+      notify('Issue not sent', 'Check your connection and try again.');
       return; // keep text + photo so nothing is lost
     }
     setText('');

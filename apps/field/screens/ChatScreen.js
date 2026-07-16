@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { notify } from '../lib/dialogs.js';
 import { clockLabel } from '@imperium/shared';
 import Header from '../components/Header.js';
 import { useAuth } from '../state/AuthContext.js';
@@ -26,7 +24,7 @@ export default function ChatScreen() {
     const { error } = (await sendMessage(t)) ?? {};
     if (error) {
       setText(t); // restore so nothing is lost
-      Alert.alert('Message not sent', 'Check your connection and try again.');
+      notify('Message not sent', 'Check your connection and try again.');
     }
   };
 
