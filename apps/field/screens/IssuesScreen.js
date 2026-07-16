@@ -5,11 +5,14 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { timeMeta } from '@imperium/shared';
 import Header from '../components/Header.js';
+import PhotoViewer from '../components/PhotoViewer.js';
 import { useData } from '../state/DataContext.js';
 
-// Signed-URL thumbnail for an issue that has a stored photo.
-function IssueThumb({ path }) {
+// Signed-URL thumbnail for an issue that has a stored photo; tap to view it
+// full-screen (with its timestamp) via onOpen.
+function IssueThumb({ path, onOpen }) {
   const { photoUrl } = useData();
   const [url, setUrl] = useState(null);
   useEffect(() => {
@@ -19,11 +22,11 @@ function IssueThumb({ path }) {
     return () => { on = false; };
   }, [path]);
   return (
-    <View style={styles.thumb}>
+    <Pressable onPress={url ? () => onOpen(url) : undefined} style={styles.thumb}>
       {url
         ? <Image source={{ uri: url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         : <ActivityIndicator size="small" color="#b85618" />}
-    </View>
+    </Pressable>
   );
 }
 
@@ -32,6 +35,7 @@ export default function IssuesScreen() {
   const [text, setText] = useState('');
   const [photo, setPhoto] = useState(null);   // { uri, base64 } or null
   const [sending, setSending] = useState(false);
+  const [viewer, setViewer] = useState(null); // { url, title, takenAt } or null
 
   // Same capture flow as the checklist photos: try the camera, fall back to
   // the library (simulator / permission denied / no camera).
@@ -118,13 +122,29 @@ export default function IssuesScreen() {
               <View key={iss.id} style={styles.issueCard}>
                 <View style={{ flexDirection: 'row', gap: 11 }}>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.issueTxt}>{iss.text}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                      <Text style={[styles.issueTxt, { flexShrink: 1 }]}>{iss.text}</Text>
+                      {iss.resolvedAt ? (
+                        <View style={styles.resolvedPill}><Text style={styles.resolvedTxt}>RESOLVED</Text></View>
+                      ) : null}
+                    </View>
                     <Text style={styles.issueMeta}>
                       {iss.author ? `${iss.author} · ${iss.meta}` : iss.meta}
                     </Text>
                   </View>
-                  {iss.photoPath ? <IssueThumb path={iss.photoPath} /> : null}
+                  {iss.photoPath ? (
+                    <IssueThumb path={iss.photoPath} onOpen={(url) =>
+                      setViewer({ url, title: iss.text, takenAt: iss.meta })} />
+                  ) : null}
                 </View>
+                {iss.reply ? (
+                  <View style={styles.replyBox}>
+                    <Text style={styles.replyMeta}>
+                      Manager{iss.repliedAt ? ` · ${timeMeta(iss.repliedAt)}` : ''}
+                    </Text>
+                    <Text style={styles.replyTxt}>{iss.reply}</Text>
+                  </View>
+                ) : null}
               </View>
             ))}
             {issues.length === 0 ? (
@@ -133,6 +153,7 @@ export default function IssuesScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <PhotoViewer photo={viewer} onClose={() => setViewer(null)} />
     </View>
   );
 }
@@ -173,6 +194,18 @@ const styles = StyleSheet.create({
   },
   issueTxt: { fontSize: 13, color: '#2a211b', lineHeight: 18 },
   issueMeta: { fontSize: 10.5, color: '#a1927f', marginTop: 6, fontVariant: ['tabular-nums'] },
+  resolvedPill: {
+    backgroundColor: '#e2efe5', borderRadius: 20,
+    paddingVertical: 2, paddingHorizontal: 7,
+  },
+  resolvedTxt: { fontSize: 8.5, fontWeight: '700', color: '#4f8a5b', letterSpacing: 0.5 },
+  replyBox: {
+    marginTop: 10, backgroundColor: '#faf7f2', borderLeftWidth: 3,
+    borderLeftColor: '#d96b2b', borderTopRightRadius: 9, borderBottomRightRadius: 9,
+    paddingVertical: 8, paddingHorizontal: 11,
+  },
+  replyMeta: { fontSize: 10, fontWeight: '700', color: '#b85618', letterSpacing: 0.4, textTransform: 'uppercase' },
+  replyTxt: { fontSize: 13, color: '#2a211b', lineHeight: 18, marginTop: 3 },
   thumb: {
     width: 46, height: 46, borderRadius: 9, backgroundColor: '#e9dccd',
     borderWidth: 1, borderColor: '#e4d6c4', overflow: 'hidden', flex: 0,

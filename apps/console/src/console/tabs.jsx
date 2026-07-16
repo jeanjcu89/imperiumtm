@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  statusMeta, prog, timeMeta, getPhotoUrl, initials,
+  statusMeta, prog, timeMeta, photoTimestamp, initials,
   ymd, startOfWeek, addDays, entryHours,
 } from '@imperium/shared';
-import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
 import useIsMobile from '../useIsMobile.js';
 import ClientModal from './ClientModal.jsx';
 import TemplateModal from './TemplateModal.jsx';
+import JobDetailModal from './JobDetailModal.jsx';
+import { Lightbox, ItemPhoto, IssuePhoto } from './photos.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
 const card = { background: '#fff', border: '1px solid #ece5db', borderRadius: 14 };
@@ -109,9 +110,10 @@ const emptyState = (title, sub) => (
 
 /* ── Dashboard (live) ──────────────────────────────────────── */
 
-export function DashboardTab() {
+export function DashboardTab({ navigateTo }) {
   const { jobs, team, issues } = useData();
   const isMobile = useIsMobile();
+  const [lightbox, setLightbox] = useState(null); // { path, title, sub, takenAt }
   const activeCount = jobs.filter(j => j.status === 'inprogress' || j.status === 'todo').length;
   const approvedCount = jobs.filter(j => j.status === 'approved').length;
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
@@ -145,7 +147,10 @@ export function DashboardTab() {
               const p = prog(job);
               const m = statusMeta(job.status);
               return (
-                <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', border: '1px solid #f0e7dc', borderRadius: 11 }}>
+                <div key={job.id} onClick={() => navigateTo('jobs', job.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px',
+                  border: '1px solid #f0e7dc', borderRadius: 11, cursor: 'pointer',
+                }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.fg, flex: 'none' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600 }}>{job.client}</div>
@@ -167,20 +172,27 @@ export function DashboardTab() {
               <div style={{ fontSize: 12.5, color: '#a1927f' }}>No issues reported yet.</div>
             )}
             {issues.slice(0, 8).map(a => (
-              <div key={a.id} style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#c9922b', marginTop: 5, flex: 'none' }} />
+              <div key={a.id} onClick={() => navigateTo('issues')} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', cursor: 'pointer' }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: a.resolvedAt ? '#4f8a5b' : '#c9922b', marginTop: 5, flex: 'none' }} />
                 <div style={{ lineHeight: 1.4, flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: 13 }}>
                     <span style={{ fontWeight: 600 }}>{a.author}</span> {a.text}
                   </span>
                   <div style={{ fontSize: 10.5, color: '#a1927f', fontFamily: 'ui-monospace,monospace', marginTop: 2 }}>{a.meta}</div>
                 </div>
-                {a.photoPath && <IssuePhoto path={a.photoPath} />}
+                {a.photoPath && <IssuePhoto path={a.photoPath} onOpen={(e) => {
+                  // Open the photo, not the Issues page.
+                  setLightbox({
+                    path: a.photoPath, title: a.text || 'Issue photo',
+                    sub: a.author, takenAt: a.meta,
+                  });
+                }} />}
               </div>
             ))}
           </div>
         </div>
       </div>
+      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} />}
     </>
   );
 }
@@ -189,10 +201,18 @@ export function DashboardTab() {
 
 const jobsGrid = '1.5fr 1.6fr 1fr .8fr 1fr .9fr 28px';
 
-export function JobsTab() {
+export function JobsTab({ param, navigateTo }) {
   const { jobs, deleteJob } = useData();
   const isMobile = useIsMobile();
   const [error, setError] = useState('');
+
+  // The selected job lives in the URL (#jobs/<id>), so Dashboard rows can
+  // deep-link here and a refresh keeps the detail open.
+  const openJob = (job) => navigateTo('jobs', job.id);
+  const closeDetail = () => navigateTo('jobs');
+  const detail = param
+    ? <JobDetailModal job={jobs.find(j => j.id === param)} onClose={closeDetail} />
+    : null;
 
   const remove = async (job) => {
     if (!window.confirm(`Delete "${job.client}"? This removes its checklist and photos link — it can't be undone.`)) return;
@@ -221,7 +241,7 @@ export function JobsTab() {
           const p = prog(job);
           const m = statusMeta(job.status);
           return (
-            <div key={job.id} style={{ ...card, padding: 14 }}>
+            <div key={job.id} onClick={() => openJob(job)} style={{ ...card, padding: 14, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14.5 }}>{job.client}</div>
@@ -235,7 +255,7 @@ export function JobsTab() {
                     fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20,
                     background: m.bg, color: m.fg, textTransform: 'uppercase',
                   }}>{m.label}</span>
-                  <button onClick={() => remove(job)} title="Delete job" style={{
+                  <button onClick={(e) => { e.stopPropagation(); remove(job); }} title="Delete job" style={{
                     border: 'none', background: 'transparent', color: '#c9b8a3',
                     fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4,
                   }}>×</button>
@@ -250,6 +270,7 @@ export function JobsTab() {
             </div>
           );
         })}
+        {detail}
       </div>
     );
   }
@@ -270,9 +291,10 @@ export function JobsTab() {
         const p = prog(job);
         const m = statusMeta(job.status);
         return (
-          <div key={job.id} style={{
+          <div key={job.id} onClick={() => openJob(job)} style={{
             display: 'grid', gridTemplateColumns: jobsGrid, gap: 12, padding: '14px 18px',
             borderBottom: '1px solid #f4ede3', alignItems: 'center', fontSize: 13,
+            cursor: 'pointer',
           }}>
             <div style={{ fontWeight: 600 }}>{job.client}</div>
             <div style={{ color: '#8a7d70', fontSize: 12 }}>{job.address}</div>
@@ -290,13 +312,14 @@ export function JobsTab() {
                 background: m.bg, color: m.fg, textTransform: 'uppercase',
               }}>{m.label}</span>
             </div>
-            <button onClick={() => remove(job)} title="Delete job" style={{
+            <button onClick={(e) => { e.stopPropagation(); remove(job); }} title="Delete job" style={{
               border: 'none', background: 'transparent', color: '#c9b8a3',
               fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4,
             }}>×</button>
           </div>
         );
       })}
+      {detail}
     </div>
   );
 }
@@ -430,57 +453,6 @@ export function TeamTab() {
 
 /* ── Review (live, real photos) ────────────────────────────── */
 
-const photoPlaceholder = {
-  height: 92, borderRadius: 10, border: '1px solid #e4d6c4',
-  backgroundImage: 'repeating-linear-gradient(135deg,#e9dccd 0 9px,#f3ebdf 9px 18px)',
-};
-
-function ItemPhoto({ path }) {
-  const { client } = useAuth();
-  const [url, setUrl] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setUrl(null);
-    if (!client || !path) return undefined;
-    getPhotoUrl(client, path).then(({ data }) => {
-      if (!cancelled && data) setUrl(data);
-    });
-    return () => { cancelled = true; };
-  }, [client, path]);
-
-  if (!url) return <div style={photoPlaceholder} />;
-  return (
-    <img src={url} alt="" style={{
-      width: '100%', height: 92, objectFit: 'cover', borderRadius: 10,
-      border: '1px solid #e4d6c4', display: 'block',
-    }} />
-  );
-}
-
-// Small square thumbnail for an issue photo; click opens the full signed URL.
-function IssuePhoto({ path }) {
-  const { client } = useAuth();
-  const [url, setUrl] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    setUrl(null);
-    if (!client || !path) return undefined;
-    getPhotoUrl(client, path).then(({ data }) => { if (!cancelled && data) setUrl(data); });
-    return () => { cancelled = true; };
-  }, [client, path]);
-  return (
-    <a href={url ?? undefined} target="_blank" rel="noreferrer"
-      onClick={e => { if (!url) e.preventDefault(); }}
-      style={{
-        flex: 'none', width: 40, height: 40, borderRadius: 8, overflow: 'hidden',
-        border: '1px solid #e4d6c4', background: '#efe4d5', display: 'block',
-      }}>
-      {url ? <img src={url} alt="issue" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
-    </a>
-  );
-}
-
 export function ReviewTab() {
   const { jobs, approveJob, rejectJob } = useData();
   const isMobile = useIsMobile();
@@ -488,6 +460,7 @@ export function ReviewTab() {
   // refetch reconciles the real status shortly after.
   const [acted, setActed] = useState({});
   const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState(null); // { path, title, sub, takenAt }
 
   // Prune optimistic entries once the job's status reconciles away from
   // 'submitted' — this also lets re-submitted jobs reappear in the queue.
@@ -553,16 +526,27 @@ export function ReviewTab() {
               }}>Approve</button>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10 }}>
-            {job.items.map(item => (
-              <div key={item.id}>
-                <ItemPhoto path={item.photoPath} />
-                <div style={{ fontSize: 11, color: '#8a7d70', marginTop: 5, lineHeight: 1.3 }}>{item.label}</div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 12 }}>
+            {job.items.map(item => {
+              const taken = item.photoPath ? photoTimestamp(item.photoPath) : null;
+              const takenLabel = taken ? timeMeta(taken) : '';
+              return (
+                <div key={item.id}>
+                  <ItemPhoto path={item.photoPath} onOpen={() => setLightbox({
+                    path: item.photoPath, title: item.label,
+                    sub: `${job.client} · ${job.employee}`, takenAt: takenLabel,
+                  })} />
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: '#3a2c20', marginTop: 6, lineHeight: 1.3 }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: takenLabel ? '#b85618' : '#a1927f', fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                    {takenLabel || (item.photoPath ? '' : 'No photo')}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
+      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }

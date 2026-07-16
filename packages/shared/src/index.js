@@ -300,6 +300,18 @@ export async function uploadIssuePhoto(client, { companyId, body, contentType = 
 export const removePhoto = (client, path) =>
   client.storage.from(PHOTO_BUCKET).remove([path]);
 
+// When a photo was uploaded, recovered from the epoch-ms every photo path
+// embeds in its filename (item: <itemId>-<ms>.jpg, issue: <ms>-<rand>.jpg).
+// Returns an ISO string or null. This is the proof-of-completion timestamp
+// managers verify against, and it works for all photos ever uploaded.
+export function photoTimestamp(path) {
+  const file = (path ?? '').split('/').pop() ?? '';
+  const m = file.match(/(?:^|-)(\d{13})(?:-|\.)/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]));
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 /* ── clock ───────────────────────────────────────────────────────── */
 
 export const fetchOpenEntry = (client, employeeId) =>
@@ -333,19 +345,34 @@ export const closeEntryById = (client, entryId) =>
 
 export const fetchIssues = (client) =>
   client.from('issues')
-    .select('id, body, photo_path, created_at, author:profiles ( full_name )')
+    .select('id, body, photo_path, created_at, reply, replied_at, resolved_at, author:profiles ( full_name )')
     .order('created_at', { ascending: false })
     .then(({ data, error }) => ({
       data: data?.map(r => ({
         id: r.id, text: r.body, meta: timeMeta(r.created_at),
+        createdAt: r.created_at,
         author: r.author?.full_name ?? '',
         photoPath: r.photo_path ?? null,
+        reply: r.reply ?? null,
+        repliedAt: r.replied_at ?? null,
+        resolvedAt: r.resolved_at ?? null,
       })) ?? null,
       error,
     }));
 
 export const addIssue = (client, { companyId, authorId, body, photoPath = null }) =>
   client.from('issues').insert({ company_id: companyId, author_id: authorId, body, photo_path: photoPath });
+
+// One manager reply per issue; the field app shows it under the report.
+export const replyToIssue = (client, { id, reply, repliedBy }) =>
+  client.from('issues')
+    .update({ reply, replied_by: repliedBy, replied_at: new Date().toISOString() })
+    .eq('id', id);
+
+export const setIssueResolved = (client, id, resolved) =>
+  client.from('issues')
+    .update({ resolved_at: resolved ? new Date().toISOString() : null })
+    .eq('id', id);
 
 export const fetchMessages = (client, threadId) =>
   client.from('messages')

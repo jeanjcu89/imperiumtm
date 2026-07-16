@@ -6,6 +6,7 @@ import useIsMobile from '../useIsMobile.js';
 import { navEntries, tabTitles } from './sampleData.js';
 import NewJobModal from './NewJobModal.jsx';
 import InboxTab from './InboxTab.jsx';
+import IssuesTab from './IssuesTab.jsx';
 import {
   DashboardTab, JobsTab, TeamTab, ReviewTab, HoursTab,
   ClientsTab, ScheduleTab, TemplatesTab, ReportsTab,
@@ -19,6 +20,7 @@ const TAB_VIEWS = {
   jobs: JobsTab,
   team: TeamTab,
   review: ReviewTab,
+  issues: IssuesTab,
   inbox: InboxTab,
   hours: HoursTab,
   clients: ClientsTab,
@@ -26,26 +28,39 @@ const TAB_VIEWS = {
   reports: ReportsTab,
 };
 
-// Inbox sits right after Review in the nav.
+// Inbox sits right after Issues in the nav (review · issues · inbox).
 const NAV_ENTRIES = navEntries.flatMap(e =>
-  e[0] === 'review' ? [e, ['inbox', 'Inbox']] : [e]);
+  e[0] === 'issues' ? [e, ['inbox', 'Inbox']] : [e]);
 
 const TAB_TITLES = {
   ...tabTitles,
   inbox: ['Inbox', 'Chat threads with your crew'],
 };
 
-// Persist the active tab in the URL hash so a reload (or back/forward) keeps
-// the manager where they were instead of snapping back to the dashboard.
-const tabFromHash = () => {
-  const key = window.location.hash.replace(/^#\/?/, '');
-  return TAB_VIEWS[key] ? key : 'dashboard';
+// The URL hash holds `tab` or `tab/param` (e.g. jobs/<jobId>), so a reload or
+// back/forward keeps the manager where they were, and views can deep-link
+// (Dashboard job board → that job's detail).
+const routeFromHash = () => {
+  const [key, param] = window.location.hash.replace(/^#\/?/, '').split('/');
+  if (!TAB_VIEWS[key]) return { tab: 'dashboard', param: null };
+  if (!param) return { tab: key, param: null };
+  // A malformed %-escape (hand-edited or truncated link) must not throw out
+  // of the useState initializer and white-screen the app — fall back to the
+  // raw param; an unknown id just shows the view's own "not found" state.
+  try {
+    return { tab: key, param: decodeURIComponent(param) };
+  } catch {
+    return { tab: key, param };
+  }
 };
 
 function Sidebar({ tab, setTab, onNavigate }) {
   const { profile, signOut } = useAuth();
-  const { jobs } = useData();
+  const { jobs, issues } = useData();
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
+  const openIssues = issues.filter(i => !i.resolvedAt).length;
+  const badgeFor = (key) =>
+    key === 'review' ? reviewCount : key === 'issues' ? openIssues : 0;
 
   return (
     <div style={{
@@ -63,7 +78,7 @@ function Sidebar({ tab, setTab, onNavigate }) {
       </div>
       {NAV_ENTRIES.map(([key, label]) => {
         const on = tab === key;
-        const hasBadge = key === 'review' && reviewCount > 0;
+        const badge = badgeFor(key);
         return (
           <button key={key} onClick={() => { setTab(key); if (onNavigate) onNavigate(); }} style={{
             display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
@@ -73,8 +88,8 @@ function Sidebar({ tab, setTab, onNavigate }) {
           }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? '#d96b2b' : '#6b5642', flex: 'none' }} />
             <span style={{ flex: 1 }}>{label}</span>
-            {hasBadge && (
-              <span style={{ background: '#d96b2b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '1px 7px' }}>{reviewCount}</span>
+            {badge > 0 && (
+              <span style={{ background: '#d96b2b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '1px 7px' }}>{badge}</span>
             )}
           </button>
         );
@@ -110,23 +125,26 @@ function Sidebar({ tab, setTab, onNavigate }) {
 export default function ConsoleShell() {
   const { ready } = useData();
   const isMobile = useIsMobile();
-  const [tab, setTabState] = useState(tabFromHash);
+  const [route, setRoute] = useState(routeFromHash);
   // null = closed; an object (possibly empty) = open, carrying modal prefill.
   const [newJob, setNewJob] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Writing the hash keeps the tab through a refresh; the hashchange listener
-  // keeps state in sync when the browser back/forward buttons move the hash.
-  const setTab = (key) => {
-    if (window.location.hash.replace(/^#\/?/, '') !== key) window.location.hash = key;
-    setTabState(key);
+  // Writing the hash keeps the route through a refresh; the hashchange
+  // listener keeps state in sync when back/forward moves the hash.
+  const navigateTo = (key, param = null) => {
+    const h = param ? `${key}/${encodeURIComponent(param)}` : key;
+    if (window.location.hash.replace(/^#\/?/, '') !== h) window.location.hash = h;
+    setRoute({ tab: key, param });
   };
+  const setTab = (key) => navigateTo(key);
   useEffect(() => {
-    const onHashChange = () => setTabState(tabFromHash());
+    const onHashChange = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  const { tab, param } = route;
   const [title, sub] = TAB_TITLES[tab];
   const View = TAB_VIEWS[tab];
   const openNewJob = (prefill) => setNewJob(prefill || {});
@@ -180,7 +198,7 @@ export default function ConsoleShell() {
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px 24px' : '22px 24px 30px' }}>
           {ready
-            ? <View openNewJob={openNewJob} />
+            ? <View openNewJob={openNewJob} param={param} navigateTo={navigateTo} />
             : <div style={{ color: '#a1927f', fontSize: 13 }}>Loading live data…</div>}
         </div>
       </div>

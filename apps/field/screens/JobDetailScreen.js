@@ -4,11 +4,14 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
-import { prog, statusMeta } from '@imperium/shared';
+import { prog, statusMeta, photoTimestamp, timeMeta } from '@imperium/shared';
 import Header from '../components/Header.js';
+import PhotoViewer from '../components/PhotoViewer.js';
 import { useData } from '../state/DataContext.js';
 
-function ItemPhoto({ path, busy, onRetake }) {
+// Checklist photo preview: the bar shows WHEN it was taken (that's the proof),
+// and tapping the photo opens it full-screen via onOpen.
+function ItemPhoto({ path, busy, onRetake, onOpen }) {
   const { photoUrl } = useData();
   const [url, setUrl] = useState(null);
 
@@ -19,15 +22,17 @@ function ItemPhoto({ path, busy, onRetake }) {
     return () => { on = false; };
   }, [path]);
 
+  const taken = photoTimestamp(path);
+
   return (
-    <View style={styles.photoBox}>
+    <Pressable onPress={url ? () => onOpen(url, taken) : undefined} style={styles.photoBox}>
       {url
         ? <Image source={{ uri: url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         : <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
             <ActivityIndicator color="#b85618" />
           </View>}
       <View style={styles.photoBar}>
-        <Text style={styles.photoBarTxt}>photo</Text>
+        <Text style={styles.photoBarTxt}>{taken ? timeMeta(taken) : 'photo'}</Text>
         {onRetake ? (
           <Pressable onPress={onRetake} disabled={busy} style={styles.retakeBtn}>
             {busy
@@ -36,11 +41,11 @@ function ItemPhoto({ path, busy, onRetake }) {
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-function ChecklistItem({ item, jobId, busy, locked, onToggle, onPhoto }) {
+function ChecklistItem({ item, jobId, busy, locked, onToggle, onPhoto, onView }) {
   return (
     <View style={[styles.itemCard, { borderColor: item.done ? '#f0e7dc' : '#ece5db' }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
@@ -60,7 +65,7 @@ function ChecklistItem({ item, jobId, busy, locked, onToggle, onPhoto }) {
       </View>
       <View style={{ marginTop: 11, marginLeft: 37 }}>
         {item.photoPath ? (
-          <ItemPhoto path={item.photoPath} busy={busy} onRetake={locked ? null : onPhoto} />
+          <ItemPhoto path={item.photoPath} busy={busy} onRetake={locked ? null : onPhoto} onOpen={onView} />
         ) : locked ? (
           <View style={[styles.addPhoto, { opacity: 0.5 }]}>
             <Text style={styles.addPhotoTxt}>No photo</Text>
@@ -88,6 +93,7 @@ export default function JobDetailScreen({ route, navigation }) {
   const job = jobs.find(j => j.id === jobId);
   const [busyItem, setBusyItem] = useState(null);
   const [photoErr, setPhotoErr] = useState('');
+  const [viewer, setViewer] = useState(null); // { url, title, takenAt } or null
 
   if (!job) {
     return (
@@ -177,6 +183,9 @@ export default function JobDetailScreen({ route, navigation }) {
                 if (error) setPhotoErr('Could not save the change — check your connection.');
               }}
               onPhoto={() => capturePhoto(item)}
+              onView={(url, taken) => setViewer({
+                url, title: item.label, takenAt: taken ? timeMeta(taken) : '',
+              })}
             />
           ))}
         </View>
@@ -199,6 +208,7 @@ export default function JobDetailScreen({ route, navigation }) {
           </Text>
         </Pressable>
       </ScrollView>
+      <PhotoViewer photo={viewer} onClose={() => setViewer(null)} />
     </View>
   );
 }
