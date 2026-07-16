@@ -79,7 +79,7 @@ function Center({ children }) {
 }
 
 function Gate() {
-  const { configured, loading, session, profile } = useAuth();
+  const { configured, loading, session, profile, signOut } = useAuth();
 
   if (!configured) {
     return (
@@ -98,6 +98,22 @@ function Gate() {
   }
 
   if (!session || !profile) return <SignInScreen />;
+
+  // Deactivated members keep their history but can't work jobs.
+  if (profile.active === false) {
+    return (
+      <Center>
+        <Text style={styles.noticeTitle}>Account deactivated</Text>
+        <Text style={styles.noticeBody}>
+          Your account was deactivated by a manager. Contact them if you think
+          this is a mistake.
+        </Text>
+        <Pressable onPress={signOut} style={styles.noticeBtn}>
+          <Text style={styles.noticeBtnTxt}>Sign out</Text>
+        </Pressable>
+      </Center>
+    );
+  }
 
   return (
     <DataProvider>
@@ -127,6 +143,11 @@ const styles = StyleSheet.create({
     maxWidth: 380, textAlign: 'center', color: '#8a7d70',
     fontSize: 14, lineHeight: 22,
   },
+  noticeBtn: {
+    marginTop: 18, borderWidth: 1, borderColor: '#d8c5ad', backgroundColor: '#fff',
+    borderRadius: 10, paddingVertical: 11, paddingHorizontal: 26,
+  },
+  noticeBtnTxt: { fontSize: 13.5, fontWeight: '700', color: '#8a7d70' },
   tabBar: {
     flexDirection: 'row', backgroundColor: '#fff',
     borderTopWidth: 1, borderTopColor: '#ece5db',

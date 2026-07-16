@@ -231,7 +231,7 @@ export default function NewJobModal({ onClose, prefill = {} }) {
             <select style={{ ...inputStyle, cursor: 'pointer' }} value={assigneeId}
               onChange={e => setAssigneeId(e.target.value)}>
               <option value="">Choose a person…</option>
-              {team.map(p => (
+              {team.filter(p => p.active).map(p => (
                 <option key={p.id} value={p.id}>
                   {p.name}{p.role === 'manager' ? ' (manager)' : ''}
                 </option>

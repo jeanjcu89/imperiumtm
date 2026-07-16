@@ -141,11 +141,13 @@ export default function ConsoleShell() {
 
   const startTour = () => setTourStep(0);
   // Finishing or skipping marks the manager onboarded, so the dashboard's
-  // getting-started card stops nagging; Help keeps a replay button.
+  // getting-started card stops nagging; Help keeps a replay button. If the
+  // write fails the card simply remains, and its own Dismiss surfaces errors.
   const endTour = async () => {
     setTourStep(null);
     if (!profile.onboardedAt) {
-      await setOnboarded(client, profile.id);
+      const { error } = (await setOnboarded(client, profile.id)) ?? {};
+      if (error) { console.warn('[tour] onboarded flag not saved:', error.message); return; }
       refreshProfile();
     }
   };

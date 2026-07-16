@@ -116,7 +116,8 @@ const emptyState = (title, sub) => (
 // check themselves off from live data; the tour and Dismiss both retire it.
 function GettingStartedCard({ navigateTo, startTour }) {
   const { client, profile, refreshProfile } = useAuth();
-  const { jobs, team, clients, templates } = useData();
+  const { jobs, team, clients = [], templates = [] } = useData();
+  const [dismissErr, setDismissErr] = useState('');
 
   const steps = [
     { label: 'Add a client', done: clients.length > 0, tab: 'clients' },
@@ -128,7 +129,9 @@ function GettingStartedCard({ navigateTo, startTour }) {
   const doneCount = steps.filter(s => s.done).length;
 
   const dismiss = async () => {
-    await setOnboarded(client, profile.id);
+    setDismissErr('');
+    const { error } = (await setOnboarded(client, profile.id)) ?? {};
+    if (error) { setDismissErr('Could not save — check your connection and try again.'); return; }
     refreshProfile();
   };
 
@@ -168,6 +171,9 @@ function GettingStartedCard({ navigateTo, startTour }) {
           </button>
         ))}
       </div>
+      {dismissErr && (
+        <div style={{ fontSize: 12, color: '#b85618', fontWeight: 600, marginTop: 10 }}>{dismissErr}</div>
+      )}
     </div>
   );
 }

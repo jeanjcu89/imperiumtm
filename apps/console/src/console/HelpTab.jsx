@@ -16,11 +16,16 @@ export default function HelpTab({ startTour }) {
         t.title.toLowerCase().includes(q) || t.body.some(p => p.toLowerCase().includes(q)))
     : HELP_TOPICS;
 
-  const toggle = (id) => setOpen(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  // While searching, matches are force-expanded — toggling then would only
+  // mutate hidden state that surprises the user once the query is cleared.
+  const toggle = (id) => {
+    if (q) return;
+    setOpen(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <>
@@ -59,11 +64,11 @@ export default function HelpTab({ startTour }) {
             <div key={t.id} style={card}>
               <button onClick={() => toggle(t.id)} style={{
                 width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
-                padding: '14px 18px', cursor: 'pointer', display: 'flex',
+                padding: '14px 18px', cursor: q ? 'default' : 'pointer', display: 'flex',
                 alignItems: 'center', justifyContent: 'space-between', gap: 10,
               }}>
                 <span style={{ fontFamily: franklin, fontWeight: 700, fontSize: 14.5, color: '#2a211b' }}>{t.title}</span>
-                <span style={{ color: '#a1927f', fontSize: 13, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
+                {!q && <span style={{ color: '#a1927f', fontSize: 13, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>}
               </button>
               {isOpen && (
                 <div style={{ padding: '0 18px 15px' }}>

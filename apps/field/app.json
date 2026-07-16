@@ -7,8 +7,18 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.imperiumtm.field"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Imperium Field uses the camera to attach photos of completed work and reported issues to jobs.",
+          "photosPermission": "Imperium Field accesses your photo library so you can attach existing photos of completed work and reported issues to jobs."
+        }
+      ]
+    ],
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

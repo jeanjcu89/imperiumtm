@@ -64,8 +64,15 @@ const mockAuth = {
   client: null,
   configured: true,
   session: { mock: true },
-  profile: { id: 'mgr-1', companyId: 'mock-co', fullName: 'Dana Lowe', role: 'manager', active: true, companyName: 'Sparkle Cleaning Co.' },
+  // onboardedAt set so the getting-started card (which needs a live client
+  // for its Dismiss write) stays out of the mock preview.
+  profile: {
+    id: 'mgr-1', companyId: 'mock-co', fullName: 'Dana Lowe', role: 'manager',
+    active: true, companyName: 'Sparkle Cleaning Co.',
+    email: 'dana@sparkle.example', onboardedAt: iso(30 * day),
+  },
   loading: false,
+  refreshProfile: ok,
   signIn: ok,
   signUpCompany: ok,
   signOut: ok,
@@ -74,11 +81,15 @@ const mockAuth = {
 const mockData = {
   ready: true,
   jobs, team, issues, invites,
+  clients: [], templates: [], timeEntries: [],
   messagesVersion: 0,
   createJob: ok,
   approveJob: ok,
   rejectJob: ok,
   deleteJob: ok,
+  addClient: ok, updateClient: ok, deleteClient: ok,
+  addTemplate: ok, updateTemplate: ok, deleteTemplate: ok,
+  replyToIssue: ok, setIssueResolved: ok, updateMember: ok,
   createInvite: async () => ({ data: { code: 'NEW1AB', role: 'crew', created_at: new Date().toISOString() }, error: null }),
 };
 

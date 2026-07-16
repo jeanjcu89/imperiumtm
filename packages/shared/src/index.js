@@ -168,23 +168,33 @@ export const signIn = (client, { email, password }) =>
 
 export const signOut = (client) => client.auth.signOut();
 
-export const fetchProfile = (client) =>
-  client.auth.getUser().then(({ data, error }) => {
-    if (error || !data.user) return { data: null, error };
-    return client.from('profiles')
-      .select('id, company_id, full_name, role, active, onboarded_at, companies ( name )')
+export const fetchProfile = async (client) => {
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user) return { data: null, error };
+  let res = await client.from('profiles')
+    .select('id, company_id, full_name, role, active, onboarded_at, companies ( name )')
+    .eq('id', data.user.id)
+    .single();
+  if (res.error?.code === '42703') {
+    // onboarded_at doesn't exist yet (v8 migration not run). Sign-in must
+    // never depend on an optional feature column, so retry without it —
+    // the getting-started card simply shows until the migration lands.
+    res = await client.from('profiles')
+      .select('id, company_id, full_name, role, active, companies ( name )')
       .eq('id', data.user.id)
-      .single()
-      .then(({ data: p, error: e }) => ({
-        data: p && {
-          id: p.id, companyId: p.company_id, fullName: p.full_name,
-          role: p.role, active: p.active, companyName: p.companies?.name ?? '',
-          email: data.user.email ?? '',
-          onboardedAt: p.onboarded_at ?? null,
-        },
-        error: e,
-      }));
-  });
+      .single();
+  }
+  const p = res.data;
+  return {
+    data: p && {
+      id: p.id, companyId: p.company_id, fullName: p.full_name,
+      role: p.role, active: p.active, companyName: p.companies?.name ?? '',
+      email: data.user.email ?? '',
+      onboardedAt: p.onboarded_at ?? null,
+    },
+    error: res.error,
+  };
+};
 
 /* ── settings (profile & company) ────────────────────────────────── */
 
@@ -192,12 +202,21 @@ export const updateOwnName = (client, userId, fullName) =>
   client.from('profiles').update({ full_name: fullName }).eq('id', userId);
 
 // Manager edits a team member's profile: rename, change role, (de)activate.
-export const updateMember = (client, id, { fullName, role, active }) =>
-  client.from('profiles').update({
+// Selecting the row back distinguishes "saved" from "RLS filtered the update
+// to zero rows" (e.g. this manager was demoted in another session) — without
+// it supabase reports success for a write that never happened.
+export const updateMember = async (client, id, { fullName, role, active }) => {
+  const { data, error } = await client.from('profiles').update({
     ...(fullName !== undefined ? { full_name: fullName } : {}),
     ...(role !== undefined ? { role } : {}),
     ...(active !== undefined ? { active } : {}),
-  }).eq('id', id);
+  }).eq('id', id).select('id');
+  if (error) return { error };
+  if (!data || data.length === 0) {
+    return { error: { message: 'Nothing was saved — you may no longer have permission to edit this member.' } };
+  }
+  return { error: null };
+};
 
 // Set when a manager finishes or dismisses the getting-started tour.
 export const setOnboarded = (client, userId) =>

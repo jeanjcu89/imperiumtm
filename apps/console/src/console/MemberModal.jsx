@@ -23,7 +23,7 @@ function Field({ label, children }) {
 // yourself is limited to the name — demoting or deactivating your own account
 // would lock you out of this very screen.
 export default function MemberModal({ member, onClose }) {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { updateMember } = useData();
   const self = member.id === profile.id;
   const [name, setName] = useState(member.name);
@@ -44,6 +44,9 @@ export default function MemberModal({ member, onClose }) {
     const { error: err } = (await updateMember(member.id, patch)) ?? {};
     setBusy(false);
     if (err) { setError(err.message); return; }
+    // Renaming yourself must also update AuthContext (sidebar name/initials,
+    // Settings form) — the realtime event only refreshes the team list.
+    if (self) refreshProfile();
     onClose();
   };
 
