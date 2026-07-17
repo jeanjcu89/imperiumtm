@@ -50,33 +50,43 @@ export async function supa(path, { method = 'GET', body, headers = {} } = {}) {
 
 // Resolves the caller from their Supabase access token and asserts they are
 // an ACTIVE MANAGER. Returns { user, profile, company } or throws HttpError.
+//
+// `safe` gates whether `message` reaches the browser. Default false (secure
+// by default): upstream errors — e.g. a Stripe "Invalid API Key provided:
+// mk_…" — are logged server-side but shown to the user as a generic line,
+// so key fragments and internals never leak. Only messages WE authored pass
+// `{ safe: true }`.
 export class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, { safe = false } = {}) {
+    super(message);
+    this.status = status;
+    this.safe = safe;
+  }
 }
 
 export async function requireManager(req) {
   const auth = req.headers.get('authorization') ?? '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token) throw new HttpError(401, 'Missing bearer token');
+  if (!token) throw new HttpError(401, 'Missing bearer token', { safe: true });
 
   const uRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${token}` },
   });
-  if (!uRes.ok) throw new HttpError(401, 'Invalid or expired session');
+  if (!uRes.ok) throw new HttpError(401, 'Invalid or expired session', { safe: true });
   const user = await uRes.json();
 
   const rows = await supa(`profiles?id=eq.${user.id}&select=id,role,active,company_id`);
   const profile = rows?.[0];
-  if (!profile) throw new HttpError(403, 'No profile for this account');
+  if (!profile) throw new HttpError(403, 'No profile for this account', { safe: true });
   if (profile.role !== 'manager' || !profile.active) {
-    throw new HttpError(403, 'Only an active manager can manage billing');
+    throw new HttpError(403, 'Only an active manager can manage billing', { safe: true });
   }
 
   const companies = await supa(
     `companies?id=eq.${profile.company_id}&select=id,name,plan,trial_ends_at,stripe_customer_id,stripe_subscription_id,stripe_status`,
   );
   const company = companies?.[0];
-  if (!company) throw new HttpError(403, 'Company not found');
+  if (!company) throw new HttpError(403, 'Company not found', { safe: true });
   return { user, profile, company };
 }
 
@@ -100,6 +110,8 @@ export async function stripe(path, params, { method = 'POST' } = {}) {
   });
   const data = await res.json();
   if (!res.ok) {
+    // Unsafe by default: Stripe's message can contain a key fragment or
+    // other internals. Logged by the handler, shown to the user as generic.
     throw new HttpError(res.status === 401 ? 500 : 502,
       data?.error?.message ?? `Stripe ${path} failed (${res.status})`);
   }
@@ -127,6 +139,11 @@ export function verifyStripeSignature(payload, header, secret, toleranceSec = 30
   });
 }
 
+// Shown to the user when the real error isn't safe to surface. The full
+// detail always goes to the function logs (Netlify → Functions → logs).
+const GENERIC_ERROR =
+  'Couldn’t reach billing just now — try again in a moment. If it keeps happening, email info@margian.co.';
+
 // Wraps a handler with OPTIONS preflight + error mapping.
 export const handler = (fn) => async (req, context) => {
   if (req.method === 'OPTIONS') return preflight();
@@ -137,8 +154,13 @@ export const handler = (fn) => async (req, context) => {
     }
     return await fn(req, context);
   } catch (e) {
-    if (e instanceof HttpError) return json(e.status, { error: e.message });
+    if (e instanceof HttpError) {
+      if (e.safe) return json(e.status, { error: e.message });
+      // Upstream/internal detail — log it, but hand the user the generic line.
+      console.error('[billing]', e.status, e.message);
+      return json(e.status, { error: GENERIC_ERROR });
+    }
     console.error('[billing]', e);
-    return json(500, { error: 'Something went wrong on our side — try again shortly.' });
+    return json(500, { error: GENERIC_ERROR });
   }
 };
