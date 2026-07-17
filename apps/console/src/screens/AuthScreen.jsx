@@ -22,7 +22,7 @@ function Field({ label, ...props }) {
 
 export default function AuthScreen() {
   const { client, signIn, signUpCompany, resetPassword } = useAuth();
-  const [mode, setMode] = useState('signin');
+  const [mode, setMode] = useState('signin'); // signin | create | invite | forgot
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -92,20 +92,35 @@ export default function AuthScreen() {
     }
   };
 
-  // Same wording for hit and miss — the response must not reveal which
-  // emails have accounts.
-  const forgot = async () => {
-    if (submitting) return;
-    if (!email.trim()) {
-      setError('Enter your email above first, then click "Forgot password?".');
-      return;
-    }
+  // Dedicated reset screen: only the email is needed here. resetPasswordForEmail
+  // does NOT reveal whether an account exists, so a returned error means a real
+  // system problem (rate limit, unlisted redirect URL, SMTP) — surface a
+  // friendly line and log the detail; never render the raw provider message.
+  const sendReset = async (e) => {
+    e.preventDefault();
+    if (!email.trim() || submitting) return;
     setSubmitting(true); setError(''); setNotice('');
     const { error: err } = (await resetPassword(email.trim())) ?? {};
     setSubmitting(false);
-    if (err) { setError(err.message); return; }
-    setNotice('If an account exists for that email, a password reset link is on its way. The link opens this console — crew set their new password here too.');
+    if (err) {
+      console.warn('[auth] reset password:', err);
+      setError('Couldn’t send the reset link just now — try again in a moment, or contact info@margian.co.');
+      return;
+    }
+    setNotice('If an account exists for that email, a reset link is on its way. Open it to set a new password — crew do this here too, then sign in on the phone.');
   };
+
+  const errorLine = error ? (
+    <div style={{ fontSize: 12.5, color: '#b85618', lineHeight: 1.45, marginBottom: 12 }}>{error}</div>
+  ) : null;
+  const noticeLine = notice ? (
+    <div style={{
+      fontSize: 12.5, color: '#4f8a5b', lineHeight: 1.45, marginBottom: 12,
+      background: '#e2efe5', borderRadius: 9, padding: '9px 12px',
+    }}>{notice}</div>
+  ) : null;
+
+  const forgot = mode === 'forgot';
 
   return (
     <div style={{
@@ -125,81 +140,107 @@ export default function AuthScreen() {
           </div>
         </div>
 
-        {/* mode tabs */}
-        <div style={{ display: 'flex', gap: 3, background: '#efe9e0', borderRadius: 10, padding: 3, marginBottom: 18 }}>
-          {[['signin', 'Sign in'], ['create', 'Create company'], ['invite', 'Invite code']].map(([key, label]) => {
-            const on = mode === key;
-            return (
-              <button key={key} type="button" onClick={() => switchMode(key)} style={{
-                flex: 1, border: 'none', cursor: 'pointer', borderRadius: 8, padding: '8px 0',
-                fontSize: 12.5, fontWeight: on ? 700 : 600,
-                background: on ? '#fff' : 'transparent', color: on ? '#2a211b' : '#8a7d70',
-                boxShadow: on ? '0 1px 2px rgba(58,44,32,.08)' : 'none',
-              }}>{label}</button>
-            );
-          })}
-        </div>
-
-        <form onSubmit={submit}>
-          {mode === 'create' && (
-            <Field label="Company name" type="text" value={companyName}
-              onChange={e => setCompanyName(e.target.value)} placeholder="Sparkle Cleaning Co." autoComplete="organization" />
-          )}
-          {mode === 'invite' && (
-            <Field label="Invite code" type="text" value={inviteCode}
-              onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="ABC123"
-              autoComplete="off" style={{ ...inputStyle, fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }} />
-          )}
-          {mode !== 'signin' && (
-            <Field label="Your name" type="text" value={fullName}
-              onChange={e => setFullName(e.target.value)} placeholder="Dana Lowe" autoComplete="name" />
-          )}
-          {mode === 'create' && (
-            <Field label="Referral code (optional — you both get +30 trial days)" type="text"
-              value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="From another Imperium company" autoComplete="off"
-              style={{ ...inputStyle, fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }} />
-          )}
-          <Field label="Email" type="email" value={email}
-            onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
-          <Field label="Password" type="password" value={password}
-            onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
-
-          {mode === 'signin' && (
-            <div style={{ textAlign: 'right', marginTop: -6, marginBottom: 12 }}>
-              <button type="button" onClick={forgot} style={{
-                border: 'none', background: 'none', padding: 0, cursor: 'pointer',
-                fontSize: 12, fontWeight: 700, color: '#b85618',
-              }}>Forgot password?</button>
+        {forgot ? (
+          /* ── dedicated password-reset view ── */
+          <>
+            <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 17, color: '#2a211b', marginBottom: 4 }}>
+              Reset your password
             </div>
-          )}
+            <div style={{ fontSize: 12.5, color: '#8a7d70', lineHeight: 1.5, marginBottom: 18 }}>
+              Enter your account email and we’ll send a link to choose a new password.
+            </div>
+            <form onSubmit={sendReset}>
+              <Field label="Email" type="email" value={email}
+                onChange={e => setEmail(e.target.value)} placeholder="you@company.com"
+                autoComplete="email" autoFocus />
+              {errorLine}
+              {noticeLine}
+              <button type="submit" disabled={!email.trim() || submitting} style={{
+                width: '100%', border: 'none', borderRadius: 9, padding: '11px 0',
+                background: '#d96b2b', color: '#fff', fontWeight: 700, fontSize: 13.5,
+                cursor: (!email.trim() || submitting) ? 'default' : 'pointer',
+                opacity: (!email.trim() || submitting) ? 0.55 : 1,
+              }}>{submitting ? 'Sending…' : 'Send reset link'}</button>
+            </form>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <button type="button" onClick={() => switchMode('signin')} style={{
+                border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                fontSize: 12.5, fontWeight: 700, color: '#b85618',
+              }}>← Back to sign in</button>
+            </div>
+          </>
+        ) : (
+          /* ── sign in / create company / invite ── */
+          <>
+            <div style={{ display: 'flex', gap: 3, background: '#efe9e0', borderRadius: 10, padding: 3, marginBottom: 18 }}>
+              {[['signin', 'Sign in'], ['create', 'Create company'], ['invite', 'Invite code']].map(([key, label]) => {
+                const on = mode === key;
+                return (
+                  <button key={key} type="button" onClick={() => switchMode(key)} style={{
+                    flex: 1, border: 'none', cursor: 'pointer', borderRadius: 8, padding: '8px 0',
+                    fontSize: 12.5, fontWeight: on ? 700 : 600,
+                    background: on ? '#fff' : 'transparent', color: on ? '#2a211b' : '#8a7d70',
+                    boxShadow: on ? '0 1px 2px rgba(58,44,32,.08)' : 'none',
+                  }}>{label}</button>
+                );
+              })}
+            </div>
 
-          {error && (
-            <div style={{ fontSize: 12.5, color: '#b85618', lineHeight: 1.45, marginBottom: 12 }}>{error}</div>
-          )}
-          {notice && (
-            <div style={{
-              fontSize: 12.5, color: '#4f8a5b', lineHeight: 1.45, marginBottom: 12,
-              background: '#e2efe5', borderRadius: 9, padding: '9px 12px',
-            }}>{notice}</div>
-          )}
+            <form onSubmit={submit}>
+              {mode === 'create' && (
+                <Field label="Company name" type="text" value={companyName}
+                  onChange={e => setCompanyName(e.target.value)} placeholder="Sparkle Cleaning Co." autoComplete="organization" />
+              )}
+              {mode === 'invite' && (
+                <Field label="Invite code" type="text" value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="ABC123"
+                  autoComplete="off" style={{ ...inputStyle, fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }} />
+              )}
+              {mode !== 'signin' && (
+                <Field label="Your name" type="text" value={fullName}
+                  onChange={e => setFullName(e.target.value)} placeholder="Dana Lowe" autoComplete="name" />
+              )}
+              {mode === 'create' && (
+                <Field label="Referral code (optional — you both get +30 trial days)" type="text"
+                  value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="From another Imperium company" autoComplete="off"
+                  style={{ ...inputStyle, fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }} />
+              )}
+              <Field label="Email" type="email" value={email}
+                onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
+              <Field label="Password" type="password" value={password}
+                onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
 
-          <button type="submit" disabled={!canSubmit || submitting} style={{
-            width: '100%', border: 'none', borderRadius: 9, padding: '11px 0',
-            background: '#d96b2b', color: '#fff', fontWeight: 700, fontSize: 13.5,
-            cursor: (!canSubmit || submitting) ? 'default' : 'pointer',
-            opacity: (!canSubmit || submitting) ? 0.55 : 1,
-          }}>
-            {submitting
-              ? (mode === 'signin' ? 'Signing in…' : mode === 'create' ? 'Creating company…' : 'Joining…')
-              : (mode === 'signin' ? 'Sign in' : mode === 'create' ? 'Create company' : 'Join company')}
-          </button>
-        </form>
+              {mode === 'signin' && (
+                <div style={{ textAlign: 'right', marginTop: -6, marginBottom: 12 }}>
+                  <button type="button" onClick={() => switchMode('forgot')} style={{
+                    border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                    fontSize: 12, fontWeight: 700, color: '#b85618',
+                  }}>Forgot password?</button>
+                </div>
+              )}
 
-        <div style={{ fontSize: 11.5, color: '#a1927f', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
-          Crew members: enter your invite code in the Imperium field app instead.
-        </div>
+              {errorLine}
+              {noticeLine}
+
+              <button type="submit" disabled={!canSubmit || submitting} style={{
+                width: '100%', border: 'none', borderRadius: 9, padding: '11px 0',
+                background: '#d96b2b', color: '#fff', fontWeight: 700, fontSize: 13.5,
+                cursor: (!canSubmit || submitting) ? 'default' : 'pointer',
+                opacity: (!canSubmit || submitting) ? 0.55 : 1,
+              }}>
+                {submitting
+                  ? (mode === 'signin' ? 'Signing in…' : mode === 'create' ? 'Creating company…' : 'Joining…')
+                  : (mode === 'signin' ? 'Sign in' : mode === 'create' ? 'Create company' : 'Join company')}
+              </button>
+            </form>
+
+            <div style={{ fontSize: 11.5, color: '#a1927f', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
+              Crew members: enter your invite code in the Imperium field app instead.
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
