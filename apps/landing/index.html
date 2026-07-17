@@ -29,16 +29,88 @@
   .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
 
   header { border-bottom: 1px solid var(--line); background: var(--bg); }
-  .nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; flex-wrap: wrap; gap: 8px 18px; }
   .brand { display: flex; align-items: center; gap: 10px; font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 17px; }
   .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--cream); display: flex; align-items: center; justify-content: center; flex: none; }
-  .nav a { color: var(--mut); text-decoration: none; font-weight: 600; font-size: 13.5px; margin-left: 22px; }
+  .nav nav { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 22px; }
+  .nav a { color: var(--mut); text-decoration: none; font-weight: 600; font-size: 13.5px; }
   .nav a:hover { color: var(--orange); }
+  @media (max-width: 560px) {
+    .nav { justify-content: center; padding: 14px 0; }
+    .nav nav { justify-content: center; gap: 6px 16px; font-size: 13px; }
+  }
 
-  .hero { padding: 72px 0 60px; text-align: center; }
-  .hero h1 { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: clamp(30px, 5vw, 46px); line-height: 1.12; margin: 0 auto 18px; max-width: 720px; }
-  .hero h1 em { color: var(--orange); font-style: normal; }
-  .hero p { color: var(--mut); max-width: 560px; margin: 0 auto 30px; font-size: 17px; }
+  .hero { padding: 64px 0 72px; position: relative; overflow: hidden; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; position: relative; }
+  .hero h1 { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: clamp(30px, 4.6vw, 48px); line-height: 1.1; margin: 0 0 18px; }
+  .hero p { color: var(--mut); max-width: 520px; margin: 0 0 28px; font-size: 17px; }
+  .kicker { display: inline-flex; align-items: center; gap: 7px; background: #f6e0d0; color: #b85618; font-family: "Libre Franklin", sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; border-radius: 20px; padding: 6px 13px; margin-bottom: 18px; }
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* staggered entrance */
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .hero-copy > * { animation: rise .65s cubic-bezier(.2,.7,.3,1) both; }
+  .hero-copy > *:nth-child(2) { animation-delay: .1s; }
+  .hero-copy > *:nth-child(3) { animation-delay: .2s; }
+  .hero-copy > *:nth-child(4) { animation-delay: .3s; }
+  .hero-copy > *:nth-child(5) { animation-delay: .4s; }
+
+  /* "Proven" underline draws itself */
+  .proven { position: relative; color: var(--orange); font-style: normal; white-space: nowrap; }
+  .proven svg { position: absolute; left: 0; bottom: -.14em; width: 100%; height: .16em; overflow: visible; }
+  .proven path { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw .6s .85s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* soft drifting background blobs */
+  .hero-blob { position: absolute; border-radius: 50%; filter: blur(64px); opacity: .6; pointer-events: none; }
+  .blob-a { width: 360px; height: 360px; background: #f4dcc2; top: -110px; right: -80px; animation: drift 12s ease-in-out infinite alternate; }
+  .blob-b { width: 280px; height: 280px; background: #ece1cb; bottom: -120px; left: -90px; animation: drift 14s 1s ease-in-out infinite alternate-reverse; }
+  @keyframes drift { to { transform: translate(26px, 20px); } }
+
+  /* animated proof-of-work demo card */
+  .hero-demo { position: relative; }
+  .demo-card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px 20px; max-width: 400px; margin: 0 auto; box-shadow: 0 24px 60px rgba(58,44,32,.14); animation: rise .7s .25s cubic-bezier(.2,.7,.3,1) both, floaty 7s 1.6s ease-in-out infinite; }
+  @keyframes floaty { 0%, 100% { transform: none; } 50% { transform: translateY(-8px); } }
+  .demo-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .demo-client { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 16.5px; }
+  .demo-meta { font-size: 12px; color: var(--faint); margin-top: 2px; }
+  .demo-chip { flex: none; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; border-radius: 20px; padding: 5px 11px; transition: background .3s, color .3s; }
+  .c-todo { background: #efe9e0; color: #8a7d70; }
+  .c-prog { background: #f6e0d0; color: #d96b2b; }
+  .c-rev { background: #f7ecd3; color: #c9922b; }
+  .c-ok { background: #e2efe5; color: #4f8a5b; }
+  .demo-row { display: flex; align-items: center; gap: 11px; padding: 11px 0; border-top: 1px solid #f3ede4; }
+  .demo-row:first-of-type { margin-top: 8px; }
+  .demo-ck { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 2px solid #ddcfba; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800; transition: background .25s, border-color .25s; }
+  .demo-ck span { opacity: 0; transform: scale(.4); transition: .2s; }
+  .demo-row.done .demo-ck { background: var(--orange); border-color: var(--orange); }
+  .demo-row.done .demo-ck span { opacity: 1; transform: none; }
+  .demo-thumb { flex: none; width: 46px; height: 35px; border-radius: 8px; object-fit: cover; border: 1px solid #e4d6c4; opacity: 0; transform: scale(.65); transition: .3s cubic-bezier(.2,1.2,.4,1); }
+  .demo-row.done .demo-thumb { opacity: 1; transform: none; }
+  .demo-lbl { font-size: 13px; font-weight: 600; min-width: 0; }
+  .demo-time { margin-left: auto; flex: none; font-size: 11px; font-weight: 800; color: var(--orange); font-variant-numeric: tabular-nums; opacity: 0; transform: translateY(5px); transition: .3s .12s; }
+  .demo-row.done .demo-time { opacity: 1; transform: none; }
+  .demo-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .demo-prog { flex: 1; height: 6px; background: #f0e7dc; border-radius: 6px; overflow: hidden; }
+  .demo-prog i { display: block; height: 100%; width: 0; background: var(--orange); border-radius: 6px; transition: width .5s cubic-bezier(.2,.7,.3,1); }
+  .demo-count { font-size: 11.5px; color: var(--faint); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .demo-stamp { position: absolute; top: 44%; left: 50%; opacity: 0; pointer-events: none; font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 21px; letter-spacing: .14em; color: #4f8a5b; border: 3px solid #4f8a5b; border-radius: 10px; padding: 7px 16px; background: rgba(255,255,255,.88); transform: translate(-50%,-50%) rotate(-8deg) scale(2.2); }
+  .demo-card.stamped .demo-stamp { animation: stamp .4s cubic-bezier(.2,1.3,.4,1) forwards; }
+  @keyframes stamp { from { opacity: 0; transform: translate(-50%,-50%) rotate(-12deg) scale(2.2); } to { opacity: 1; transform: translate(-50%,-50%) rotate(-8deg) scale(1); } }
+  .demo-cap { text-align: center; font-size: 12.5px; color: var(--faint); margin-top: 16px; animation: rise .65s .5s both; }
+
+  @media (max-width: 880px) {
+    .hero { padding: 52px 0 60px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-copy { text-align: center; }
+    .hero-copy p { margin-left: auto; margin-right: auto; }
+    .cta-row { justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-copy > *, .demo-card, .demo-cap, .hero-blob, .proven path { animation: none !important; }
+    .proven path { stroke-dashoffset: 0; }
+    .demo-card .demo-stamp { opacity: 1; transform: translate(-50%,-50%) rotate(-8deg) scale(1); }
+  }
   .cta { display: inline-flex; align-items: center; gap: 10px; background: var(--brown); color: #fff; border-radius: 12px; padding: 13px 24px; text-decoration: none; font-weight: 700; font-size: 14.5px; font-family: "Libre Franklin", sans-serif; }
   .cta small { display: block; text-align: left; font-weight: 600; font-size: 10px; color: #cbb9a2; letter-spacing: .04em; }
   .cta span { display: block; }
@@ -100,27 +172,71 @@
   </div>
 </header>
 
-<div class="hero wrap">
-  <h1 class="franklin">Every job done. <em>Proven</em>, with a timestamp.</h1>
-  <p>Imperium runs your cleaning operation end to end: crews work from their
-  phones with photo proof on every task, and managers watch it land live —
-  schedules, timesheets, issues, and approvals in one place.</p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap">
-    <span class="cta" aria-label="Coming soon on the App Store">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex:none"><path fill="#ffffff" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.033 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
-      <span><small>COMING SOON ON THE</small>App Store</span>
-    </span>
-    <span class="cta" aria-label="Coming soon on Google Play">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex:none">
-        <path fill="#00D7FE" d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12 3.84 21.85c-.5-.24-.84-.76-.84-1.35z"/>
-        <path fill="#00F076" d="M6.05 2.66l10.76 6.22-2.27 2.27L6.05 2.66z"/>
-        <path fill="#FFD900" d="M20.16 10.81c.34.27.59.69.59 1.19s-.25.92-.59 1.19l-2.29 1.32L15.39 12l2.48-2.48 2.29 1.29z"/>
-        <path fill="#FF3A44" d="M6.05 21.34l10.76-6.22-2.27-2.27L6.05 21.34z"/>
-      </svg>
-      <span><small>COMING SOON ON</small>Google Play</span>
-    </span>
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-blob blob-a"></div>
+    <div class="hero-blob blob-b"></div>
+
+    <div class="hero-copy">
+      <div class="kicker"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Photo-verified field work</div>
+      <h1 class="franklin">Every job done. <em class="proven">Proven<svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 28 2, 74 2, 98 6" pathLength="100"/></svg></em>, with a timestamp.</h1>
+      <p>Imperium runs your cleaning operation end to end: crews work from their
+      phones with photo proof on every task, and managers watch it land live —
+      schedules, timesheets, issues, and approvals in one place.</p>
+      <div class="cta-row">
+        <span class="cta" aria-label="Coming soon on the App Store">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex:none"><path fill="#ffffff" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.033 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+          <span><small>COMING SOON ON THE</small>App Store</span>
+        </span>
+        <span class="cta" aria-label="Coming soon on Google Play">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex:none">
+            <path fill="#00D7FE" d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12 3.84 21.85c-.5-.24-.84-.76-.84-1.35z"/>
+            <path fill="#00F076" d="M6.05 2.66l10.76 6.22-2.27 2.27L6.05 2.66z"/>
+            <path fill="#FFD900" d="M20.16 10.81c.34.27.59.69.59 1.19s-.25.92-.59 1.19l-2.29 1.32L15.39 12l2.48-2.48 2.29 1.29z"/>
+            <path fill="#FF3A44" d="M6.05 21.34l10.76-6.22-2.27-2.27L6.05 21.34z"/>
+          </svg>
+          <span><small>COMING SOON ON</small>Google Play</span>
+        </span>
+      </div>
+      <div class="subcta">Manager console runs in any browser · crew app for iPhone &amp; Android</div>
+    </div>
+
+    <div class="hero-demo" aria-hidden="true">
+      <div class="demo-card" id="demoCard">
+        <div class="demo-head">
+          <div>
+            <div class="demo-client">Northgate Offices</div>
+            <div class="demo-meta">James Okoro · Today, 12:30 PM</div>
+          </div>
+          <span class="demo-chip c-todo" id="demoChip">To do</span>
+        </div>
+        <div class="demo-row">
+          <span class="demo-ck"><span>✓</span></span>
+          <img class="demo-thumb" src="./shots/thumb-breakroom.jpg" alt="">
+          <span class="demo-lbl">Kitchen &amp; breakroom</span>
+          <span class="demo-time">2:41 PM</span>
+        </div>
+        <div class="demo-row">
+          <span class="demo-ck"><span>✓</span></span>
+          <img class="demo-thumb" src="./shots/thumb-desks.jpg" alt="">
+          <span class="demo-lbl">Desks &amp; surfaces</span>
+          <span class="demo-time">2:58 PM</span>
+        </div>
+        <div class="demo-row">
+          <span class="demo-ck"><span>✓</span></span>
+          <img class="demo-thumb" src="./shots/thumb-restroom.jpg" alt="">
+          <span class="demo-lbl">Restrooms sanitised</span>
+          <span class="demo-time">3:05 PM</span>
+        </div>
+        <div class="demo-foot">
+          <div class="demo-prog"><i id="demoFill"></i></div>
+          <span class="demo-count" id="demoCount">0/3</span>
+        </div>
+        <div class="demo-stamp">APPROVED</div>
+      </div>
+      <div class="demo-cap">Photo proof lands on the manager's screen as the crew works.</div>
+    </div>
   </div>
-  <div class="subcta">Manager console runs in any browser · crew app for iPhone &amp; Android</div>
 </div>
 
 <div class="band">
@@ -128,10 +244,10 @@
     <h2>Built around proof of work</h2>
     <p class="sub">Not another to-do list — a verification loop between the field and the office.</p>
     <div class="cols">
-      <div class="tile"><div class="dot">📷</div><h3>Photo proof per task</h3><p>Crew attach a photo to each checklist item. Every photo carries the exact time it was taken — that's your evidence of when work was completed.</p></div>
-      <div class="tile"><div class="dot">✓</div><h3>Review &amp; approve</h3><p>Submitted jobs land in a review queue with full-size photos and timestamps. Approve, or send back with one click.</p></div>
-      <div class="tile"><div class="dot">🕐</div><h3>Hours that track themselves</h3><p>Clock in and out from the phone; weekly timesheets and reports build themselves from real entries.</p></div>
-      <div class="tile"><div class="dot">⚠️</div><h3>Issues, handled</h3><p>Missing supplies, damage, locked doors — crew flag it with a photo, managers reply, workers see the answer instantly.</p></div>
+      <div class="tile"><div class="dot"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div><h3>Photo proof per task</h3><p>Crew attach a photo to each checklist item. Every photo carries the exact time it was taken — that's your evidence of when work was completed.</p></div>
+      <div class="tile"><div class="dot"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Review &amp; approve</h3><p>Submitted jobs land in a review queue with full-size photos and timestamps. Approve, or send back with one click.</p></div>
+      <div class="tile"><div class="dot"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>Hours that track themselves</h3><p>Clock in and out from the phone; weekly timesheets and reports build themselves from real entries.</p></div>
+      <div class="tile"><div class="dot"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 20h16a2 2 0 0 0 1.73-2Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><h3>Issues, handled</h3><p>Missing supplies, damage, locked doors — crew flag it with a photo, managers reply, workers see the answer instantly.</p></div>
     </div>
   </div>
 </div>
@@ -209,6 +325,46 @@
     </div>
   </div>
 </footer>
+
+<script>
+(() => {
+  // Hero demo: the proof-of-work loop acted out — items check off with photo
+  // and timestamp, progress fills, status walks todo → in progress → in
+  // review → approved (stamp), then the card resets and replays.
+  const card = document.getElementById('demoCard');
+  if (!card) return;
+  const rows = [...card.querySelectorAll('.demo-row')];
+  const chip = document.getElementById('demoChip');
+  const fill = document.getElementById('demoFill');
+  const count = document.getElementById('demoCount');
+
+  const setChip = (cls, label) => { chip.className = 'demo-chip ' + cls; chip.textContent = label; };
+  const setDone = (n) => {
+    rows.forEach((r, i) => r.classList.toggle('done', i < n));
+    fill.style.width = (n / rows.length * 100) + '%';
+    count.textContent = n + '/' + rows.length;
+  };
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setDone(rows.length);
+    setChip('c-ok', 'Approved');
+    card.classList.add('stamped');
+    return;
+  }
+
+  const steps = [
+    [700,  () => { setDone(1); setChip('c-prog', 'In progress'); }],
+    [1700, () => setDone(2)],
+    [2700, () => setDone(3)],
+    [3500, () => setChip('c-rev', 'In review')],
+    [4400, () => { setChip('c-ok', 'Approved'); card.classList.add('stamped'); }],
+    [7600, () => { card.classList.remove('stamped'); setDone(0); setChip('c-todo', 'To do'); }],
+  ];
+  const play = () => steps.forEach(([t, fn]) => setTimeout(fn, t));
+  play();
+  setInterval(play, 8400);
+})();
+</script>
 
 </body>
 </html>
