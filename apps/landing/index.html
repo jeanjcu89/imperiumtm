@@ -163,6 +163,27 @@
   .trial-strip { margin-top: 18px; max-width: 720px; background: var(--cream); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; color: #6b5642; line-height: 1.6; }
   .trial-strip b { color: #3a2c20; }
 
+  /* contact & newsletter */
+  .contact-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; align-items: start; }
+  @media (max-width: 820px) { .contact-grid { grid-template-columns: 1fr; } }
+  .cform label { display: block; margin-bottom: 12px; }
+  .cform .lbl { font-size: 11.5px; font-weight: 700; color: var(--mut); margin-bottom: 5px; }
+  .cform input, .cform select, .cform textarea {
+    width: 100%; border: 1px solid #e0d3c2; border-radius: 9px; background: var(--bg);
+    padding: 10px 12px; font-size: 13.5px; color: var(--ink); outline: none;
+    font-family: inherit; box-sizing: border-box;
+  }
+  .cform textarea { min-height: 96px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 540px) { .row2 { grid-template-columns: 1fr; } }
+  .form-btn { border: none; background: var(--orange); color: #fff; font-weight: 700; font-family: "Libre Franklin", sans-serif; font-size: 13.5px; border-radius: 9px; padding: 11px 22px; cursor: pointer; }
+  .form-btn:hover { background: #c75f22; }
+  .form-note { font-size: 11.5px; color: var(--faint); margin-top: 10px; line-height: 1.5; }
+  .form-ok { background: #e2efe5; color: #4f8a5b; font-weight: 600; font-size: 13.5px; border-radius: 10px; padding: 12px 14px; }
+  .form-err { color: #b85618; font-weight: 600; font-size: 12.5px; margin-top: 10px; }
+  .news-row { display: flex; gap: 10px; }
+  .news-row input { flex: 1; min-width: 0; }
+
   footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--faint); font-size: 13px; }
   .foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
   footer a { color: var(--mut); text-decoration: none; font-weight: 600; margin-right: 18px; }
@@ -180,6 +201,7 @@
     <nav>
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
       <a href="./support.html">Support</a>
       <a href="./privacy.html">Privacy</a>
       <a href="https://app.imperiumtm.com" style="color:#d96b2b">Manager sign in →</a>
@@ -369,6 +391,59 @@
   </div>
 </section>
 
+<section id="contact" style="padding-top: 0">
+  <div class="wrap">
+    <h2>Talk to us</h2>
+    <p class="sub">Questions, a crew to onboard, or a feature you need — we read everything.</p>
+    <div class="contact-grid">
+
+      <div class="card">
+        <form id="contactForm" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="cform">
+          <input type="hidden" name="form-name" value="contact">
+          <p style="display:none"><label>Leave this empty: <input name="bot-field"></label></p>
+          <div class="row2">
+            <label><div class="lbl">Your name</div><input type="text" name="name" required autocomplete="name"></label>
+            <label><div class="lbl">Email</div><input type="email" name="email" required autocomplete="email"></label>
+          </div>
+          <div class="row2">
+            <label><div class="lbl">Company (optional)</div><input type="text" name="company" autocomplete="organization"></label>
+            <label><div class="lbl">Crew size</div>
+              <select name="crew_size">
+                <option>Just me</option>
+                <option selected>2–5</option>
+                <option>6–15</option>
+                <option>16+</option>
+              </select>
+            </label>
+          </div>
+          <label><div class="lbl">What do you need?</div><textarea name="message" required></textarea></label>
+          <button class="form-btn" type="submit">Send message</button>
+          <div class="form-err" id="contactErr" hidden></div>
+          <div class="form-note">We reply from info@margian.co, usually within a business day.
+          Your details are used only to respond — see the <a href="./privacy.html" style="color:var(--mut)">privacy policy</a>.</div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="franklin" style="font-size:16px; margin:0 0 8px">Not ready yet?</h3>
+        <p style="font-size:13.5px; color:var(--mut); margin:0 0 14px; line-height:1.6">
+          Get occasional product updates — new features, launch news, and
+          field-tested tips for running cleaning crews. A few emails a year,
+          unsubscribe anytime.
+        </p>
+        <form id="newsForm" class="cform">
+          <div class="news-row">
+            <input type="email" name="email" placeholder="you@company.com" required aria-label="Email for product updates">
+            <button class="form-btn" type="submit">Sign up</button>
+          </div>
+          <div class="form-err" id="newsErr" hidden></div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap foot">
     <div>© 2026 Margian Digital LLC · Imperium Task Manager</div>
@@ -417,6 +492,51 @@
   const play = () => steps.forEach(([t, fn]) => setTimeout(fn, t));
   play();
   setInterval(play, 8400);
+})();
+
+(() => {
+  // Contact → Netlify Forms (AJAX so success shows inline, not a redirect).
+  const contact = document.getElementById('contactForm');
+  if (contact) contact.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('contactErr');
+    err.hidden = true;
+    try {
+      const res = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(contact)).toString(),
+      });
+      if (!res.ok) throw new Error();
+      contact.innerHTML = '<div class="form-ok">Got it — we\'ll get back to you within a business day.</div>';
+    } catch {
+      err.textContent = 'Could not send just now — email info@margian.co instead.';
+      err.hidden = false;
+    }
+  });
+
+  // Newsletter → serverless subscribe (Resend audience).
+  const news = document.getElementById('newsForm');
+  if (news) news.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('newsErr');
+    err.hidden = true;
+    try {
+      const res = await fetch('/.netlify/functions/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: new FormData(news).get('email') }),
+      });
+      const body = await res.json().catch(() => ({}));
+      // Strict: only the function's own {ok:true} counts — a 200 that isn't
+      // JSON (misroute, local static server) must not fake success.
+      if (!res.ok || body.ok !== true) throw new Error(body.error);
+      news.innerHTML = '<div class="form-ok">You\'re on the list — talk soon.</div>';
+    } catch (ex) {
+      err.textContent = ex.message || 'Something went wrong — try again shortly.';
+      err.hidden = false;
+    }
+  });
 })();
 </script>
 

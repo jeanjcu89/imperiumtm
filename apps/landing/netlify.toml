@@ -3,6 +3,11 @@
 [build]
   publish = "."
 
+# Newsletter signup (Resend Audience). Env vars on THIS site:
+# RESEND_API_KEY, RESEND_AUDIENCE_ID. Dark until they're set.
+[functions]
+  directory = "netlify/functions"
+
 # Pretty URLs — these are the canonical links used in App Store Connect.
 [[redirects]]
   from = "/privacy"
