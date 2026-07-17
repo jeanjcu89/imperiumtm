@@ -62,23 +62,43 @@ const routeFromHash = () => {
   }
 };
 
-// Quiet plan status above the user card: informative during the trial,
-// an upgrade nudge on free, invisible on Pro (and pre-v11 databases).
+// Plan status pinned above the user card on every tab. Pro gets a quiet
+// confirmation badge; trial and free ALWAYS carry an explicit upgrade
+// call-to-action. Hidden only on pre-v11 databases (plan unknown).
 function PlanChip({ onOpen }) {
   const { profile } = useAuth();
   const plan = planInfo(profile);
-  if (!plan || plan.isPaid) return null;
+  if (!plan) return null;
+
+  if (plan.isPaid) {
+    return (
+      <button onClick={onOpen} title="Plan & billing" style={{
+        display: 'flex', alignItems: 'center', gap: 7, width: '100%', textAlign: 'left',
+        border: 'none', borderRadius: 9, padding: '7px 11px', marginBottom: 8,
+        cursor: 'pointer', background: '#4a3928', color: '#a9cbae',
+        fontSize: 11.5, fontWeight: 700,
+      }}>
+        <span style={{ fontWeight: 800 }}>✓</span> Pro plan
+      </button>
+    );
+  }
+
   const urgent = plan.isFree || plan.trialDaysLeft <= 7;
-  const label = plan.onTrial
-    ? `Pro trial · ${plan.trialDaysLeft} day${plan.trialDaysLeft === 1 ? '' : 's'} left`
-    : 'Free plan — upgrade';
   return (
     <button onClick={onOpen} title="Plan & billing" style={{
       display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
       border: 'none', borderRadius: 9, padding: '8px 11px', marginBottom: 8,
-      background: '#4a3928', color: urgent ? '#f0a35e' : '#c9b8a3',
-      fontSize: 11.5, fontWeight: 700,
-    }}>{label}</button>
+      background: '#4a3928',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: urgent ? '#f0a35e' : '#c9b8a3' }}>
+        {plan.onTrial
+          ? `Pro trial · ${plan.trialDaysLeft} day${plan.trialDaysLeft === 1 ? '' : 's'} left`
+          : 'Free plan'}
+      </div>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: '#f0a35e', marginTop: 2 }}>
+        Upgrade to Pro →
+      </div>
+    </button>
   );
 }
 
