@@ -19,11 +19,16 @@ accounts, DNS) · **Claude** (code) — check items off as they land.
 
 ## 🚨 Blockers — before spending marketing effort
 
-- [ ] **Transactional email (Jean)** — Resend account + verify
-      `imperiumtm.com` (DNS records) + Supabase custom SMTP. Without it,
+- [ ] **Transactional email (Jean)** — Resend, THE top item. Without it,
       confirmation/reset emails rate-limit at ~3/hr and land in spam.
-      Steps in the Resend section of this doc's companion message /
-      [billing-setup.md](billing-setup.md) style. THE top item.
+      - [x] Resend account created
+      - [ ] Verify domain `imperiumtm.com` (root; DNS is on Netlify —
+            add Resend's MX + SPF + DKIM records under Domains →
+            imperiumtm.com). Root is a clean slate — no existing SPF/MX.
+      - [ ] Supabase → Auth → SMTP Settings: custom SMTP via
+            `smtp.resend.com:465` (user `resend`, pass = Resend API key),
+            sender `no-reply@imperiumtm.com`.
+      - [ ] (optional) brand the Supabase auth email templates.
 - [ ] **Terms of Service (Claude drafts → Jean lawyer-skims)** —
       terms.html: service description, billing & refund policy, liability.
       Link from footer, signup, checkout.
