@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../state/AuthContext.js';
 
 export default function SignInScreen() {
-  const { signIn, signUpWithInvite } = useAuth();
+  const { signIn, signUpWithInvite, resetPassword } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState('signin'); // 'signin' | 'invite'
   const [email, setEmail] = useState('');
@@ -46,6 +46,24 @@ export default function SignInScreen() {
 
   const canSubmit = email.trim() && password
     && (!invite || (fullName.trim() && inviteCode.trim()));
+
+  // Same wording for hit and miss — must not reveal which emails exist.
+  const forgot = async () => {
+    if (busy) return;
+    setError(''); setNotice('');
+    if (!email.trim()) {
+      setError('Enter your email above first, then tap "Forgot password?".');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: e } = (await resetPassword(email.trim())) ?? {};
+      if (e) { setError(e.message); return; }
+      setNotice('If an account exists for that email, a reset link is on its way. It opens in your browser — set the new password there, then sign in here.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -100,6 +118,12 @@ export default function SignInScreen() {
             style={styles.input} placeholder="Password" placeholderTextColor="#a1927f"
             value={password} onChangeText={setPassword} secureTextEntry
           />
+
+          {!invite ? (
+            <Pressable onPress={forgot} style={{ alignSelf: 'flex-end', marginBottom: 6 }}>
+              <Text style={[styles.switchTxt, { fontSize: 12 }]}>Forgot password?</Text>
+            </Pressable>
+          ) : null}
 
           <Pressable
             onPress={submit} disabled={!canSubmit || busy}

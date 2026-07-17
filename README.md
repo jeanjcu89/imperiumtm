@@ -22,7 +22,7 @@ packages/
   shared/       the one data layer both apps use (Supabase client, queries,
                 photos, realtime, auth helpers)
 supabase/
-  migrations/   SQL — run every file in filename order (v2 → v11)
+  migrations/   SQL — run every file in filename order (v2 → v12)
 netlify/
   functions/    Stripe billing endpoints (checkout, portal, seat sync,
                 webhook) — deployed with the console site
@@ -41,6 +41,15 @@ netlify.toml    builds apps/console; serves /privacy and /support
   including Storage: job photos live in a private bucket under
   `<company_id>/…` and are served via short-lived signed URLs.
 - One chat thread per crew member (crew see their own; managers see all).
+- **Deactivation is enforced server-side** (v12): `is_manager()` requires an
+  active profile, and crew write policies check `is_active_member()` —
+  deactivated members keep read access to their history but can't write.
+  Both apps show deactivated (and wrong-surface) gates with a sign-out.
+- **Password reset**: "Forgot password?" on both sign-in screens emails a
+  recovery link that opens the console's set-new-password screen (crew set
+  theirs there too, then sign in on their phone). Requires
+  `https://app.imperiumtm.com` in Supabase → Authentication → URL
+  Configuration → Redirect URLs.
 
 ## Plans & billing
 
@@ -71,7 +80,8 @@ netlify.toml    builds apps/console; serves /privacy and /support
    multitenant core → v3 clients/templates/schedule → v4 estimates &
    recurrence → v5 realtime deletes → v6 issue photos → v7 issue replies →
    v8 settings/onboarding → v9 profile-column protection → v10 account
-   deletion → v11 plans, trials & referrals.
+   deletion → v11 plans, trials & referrals → v12 active-account
+   enforcement.
 2. **Auth setting** — Supabase → Authentication → Sign In / Providers → Email:
    for frictionless testing turn **Confirm email off** (or leave it on — both
    apps show a "check your email" notice after signup).
@@ -138,4 +148,4 @@ plan seat limits (1 manager + 2 crew) with DB-level enforcement, a 30-day
 photo archive gate, and Stripe-backed Pro at $6/crew seat/month (Settings →
 Plan & billing; pricing on the landing page).
 
-Next candidates: exportable reports, password reset, and Android/Play Store.
+Next candidates: exportable reports and Android/Play Store.

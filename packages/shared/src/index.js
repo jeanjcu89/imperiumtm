@@ -6,14 +6,17 @@ import { createClient } from '@supabase/supabase-js';
 /* ── client ──────────────────────────────────────────────────────── */
 
 // `storage` lets React Native pass AsyncStorage; web uses the default.
-export function createImperiumClient({ url, anonKey, storage }) {
+// detectSessionInUrl: the web console passes true so password-recovery links
+// (which carry their token in the URL hash) sign the user in and emit
+// PASSWORD_RECOVERY; native apps keep it off.
+export function createImperiumClient({ url, anonKey, storage, detectSessionInUrl = false }) {
   if (!url || !anonKey) return null;
   return createClient(url, anonKey, {
     auth: {
       ...(storage ? { storage } : {}),
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl,
     },
   });
 }
@@ -192,6 +195,12 @@ export async function signUpWithInvite(client, { email, password, fullName, invi
 
 export const signIn = (client, { email, password }) =>
   client.auth.signInWithPassword({ email, password });
+
+// Sends the recovery email. redirectTo must be allow-listed in Supabase
+// Auth → URL Configuration; the link signs the user into that page with a
+// PASSWORD_RECOVERY event (console shows its set-new-password screen).
+export const resetPassword = (client, email, redirectTo) =>
+  client.auth.resetPasswordForEmail(email, { redirectTo });
 
 export const signOut = (client) => client.auth.signOut();
 

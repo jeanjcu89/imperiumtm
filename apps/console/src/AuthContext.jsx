@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { fetchProfile, signIn, signOut, signUpCompany } from '@imperium/shared';
+import { fetchProfile, resetPassword, signIn, signOut, signUpCompany } from '@imperium/shared';
 import { client } from './lib/client.js';
 
 export const AuthContext = createContext(null);
@@ -9,6 +9,9 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  // True after a password-recovery link signed the user in — the Gate shows
+  // the set-new-password screen until it's cleared.
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     if (!client) { setLoading(false); return; }
@@ -16,9 +19,10 @@ export function AuthProvider({ children }) {
       setSession(data.session);
       if (!data.session) setLoading(false);
     });
-    const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = client.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       setSession(s);
-      if (!s) { setProfile(null); setLoading(false); }
+      if (!s) { setProfile(null); setRecovery(false); setLoading(false); }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -48,9 +52,12 @@ export function AuthProvider({ children }) {
     session,
     profile,
     loading,
+    recovery,
+    clearRecovery: () => setRecovery(false),
     refreshProfile,
     signIn: (creds) => signIn(client, creds),
     signUpCompany: (params) => signUpCompany(client, params),
+    resetPassword: (email) => resetPassword(client, email, window.location.origin),
     signOut: () => signOut(client),
   };
 

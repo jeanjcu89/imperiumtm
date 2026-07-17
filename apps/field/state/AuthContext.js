@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { fetchProfile, signIn, signOut, signUpWithInvite } from '@imperium/shared';
+import { fetchProfile, resetPassword, signIn, signOut, signUpWithInvite } from '@imperium/shared';
 import { client } from '../lib/client.js';
+
+// Recovery links open the manager console in a browser — it hosts the
+// set-new-password screen for every role (deep-linking recovery tokens into
+// a native app is fragile; the new password then works here too).
+const RECOVERY_URL = 'https://app.imperiumtm.com';
 
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -51,6 +56,7 @@ export function AuthProvider({ children }) {
     refreshProfile,
     signIn: (creds) => signIn(client, creds),
     signUpWithInvite: (params) => signUpWithInvite(client, params),
+    resetPassword: (email) => resetPassword(client, email, RECOVERY_URL),
     signOut: () => signOut(client),
   };
 

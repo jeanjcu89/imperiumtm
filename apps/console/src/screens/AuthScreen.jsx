@@ -21,7 +21,7 @@ function Field({ label, ...props }) {
 }
 
 export default function AuthScreen() {
-  const { client, signIn, signUpCompany } = useAuth();
+  const { client, signIn, signUpCompany, resetPassword } = useAuth();
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,6 +92,21 @@ export default function AuthScreen() {
     }
   };
 
+  // Same wording for hit and miss — the response must not reveal which
+  // emails have accounts.
+  const forgot = async () => {
+    if (submitting) return;
+    if (!email.trim()) {
+      setError('Enter your email above first, then click "Forgot password?".');
+      return;
+    }
+    setSubmitting(true); setError(''); setNotice('');
+    const { error: err } = (await resetPassword(email.trim())) ?? {};
+    setSubmitting(false);
+    if (err) { setError(err.message); return; }
+    setNotice('If an account exists for that email, a password reset link is on its way. The link opens this console — crew set their new password here too.');
+  };
+
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
@@ -150,6 +165,15 @@ export default function AuthScreen() {
           <Field label="Password" type="password" value={password}
             onChange={e => setPassword(e.target.value)} placeholder="••••••••"
             autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
+
+          {mode === 'signin' && (
+            <div style={{ textAlign: 'right', marginTop: -6, marginBottom: 12 }}>
+              <button type="button" onClick={forgot} style={{
+                border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                fontSize: 12, fontWeight: 700, color: '#b85618',
+              }}>Forgot password?</button>
+            </div>
+          )}
 
           {error && (
             <div style={{ fontSize: 12.5, color: '#b85618', lineHeight: 1.45, marginBottom: 12 }}>{error}</div>
