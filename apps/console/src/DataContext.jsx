@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import {
   fetchJobs, fetchTeam, fetchIssues, fetchInvites,
   fetchClients, fetchTemplates, fetchTimeEntries,
-  createJobs, setJobStatus, resetJobItems, deleteJob, createInvite,
+  createJobs, setJobStatus, resetJobItems, deleteJob, createInvite, deleteInvite,
   addClient, updateClient, deleteClient,
   addTemplate, updateTemplate, deleteTemplate,
   replyToIssue, setIssueResolved, updateMember,
@@ -72,6 +72,7 @@ export function DataProvider({ children }) {
     deleteJob: (jobId) => deleteJob(client, jobId),
     createInvite: (role = 'crew') =>
       createInvite(client, { companyId: profile.companyId, createdBy: profile.id, role }),
+    deleteInvite: (code) => deleteInvite(client, code),
     addClient: (params) => addClient(client, { companyId: profile.companyId, ...params }),
     updateClient: (id, patch) => updateClient(client, id, patch),
     deleteClient: (id) => deleteClient(client, id),

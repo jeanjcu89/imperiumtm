@@ -609,6 +609,12 @@ export const createInvite = (client, { companyId, createdBy, role = 'crew' }) =>
     .insert({ code: genCode(), company_id: companyId, created_by: createdBy, role })
     .select('code, role, created_at').single();
 
+// Revoke an unused code (managers; RLS-gated). Codes cost nothing until
+// redeemed, but an outstanding one lets anyone holding it join — and on
+// Pro a joined crew member bills a seat, so codes must be killable.
+export const deleteInvite = (client, code) =>
+  client.from('invites').delete().eq('code', code);
+
 export const fetchInvites = (client) =>
   client.from('invites')
     .select('code, role, created_at, used_at, used_by')

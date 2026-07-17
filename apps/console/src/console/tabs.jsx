@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   statusMeta, prog, timeMeta, photoTimestamp, initials,
   ymd, startOfWeek, addDays, entryHours, setOnboarded,
-  planInfo, FREE_CREW_SEATS,
+  planInfo, FREE_CREW_SEATS, PRO_SEAT_PRICE,
 } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
@@ -409,9 +409,11 @@ const roleLabel = (role) => role === 'manager' ? 'Manager' : 'Crew';
 
 function InviteCodesCard() {
   const { profile } = useAuth();
-  const { invites, createInvite, team } = useData();
+  const { invites, createInvite, deleteInvite, team } = useData();
   const [local, setLocal] = useState([]);   // optimistic: codes created this session
+  const [revoked, setRevoked] = useState([]); // optimistic: codes revoked this session
   const [busy, setBusy] = useState(null);
+  const [removing, setRemoving] = useState(null);
   const [error, setError] = useState('');
 
   const plan = planInfo(profile);
@@ -431,11 +433,23 @@ function InviteCodesCard() {
     setBusy(null);
   };
 
+  // Revoking an unused code kills it before anyone can redeem it — on Pro a
+  // redemption bills a seat, so outstanding codes must be killable.
+  const revoke = async (code) => {
+    if (removing) return;
+    if (!window.confirm(`Revoke invite code ${code}? Anyone holding it will no longer be able to join.`)) return;
+    setRemoving(code); setError('');
+    const { error: err } = (await deleteInvite(code)) ?? {};
+    if (err) setError(`Could not revoke ${code} — ${err.message}`);
+    else setRevoked(r => [...r, code]); // realtime refetch reconciles the server list
+    setRemoving(null);
+  };
+
   // Realtime refetch reconciles; drop local copies once the server list has them.
   const merged = [
     ...local.filter(l => !invites.some(i => i.code === l.code)),
     ...invites,
-  ];
+  ].filter(i => !revoked.includes(i.code));
   const unused = merged.filter(i => !i.used_at);
   const used = merged.filter(i => i.used_at);
 
@@ -462,7 +476,9 @@ function InviteCodesCard() {
             <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 5, color: atCrewLimit ? '#b85618' : '#8a7d70' }}>
               {plan.effective === 'free'
                 ? `${crewActive} of ${FREE_CREW_SEATS} free crew seats in use`
-                : `${crewActive} crew active · unlimited seats on ${plan.isPaid ? 'Pro' : 'your Pro trial'}`}
+                : plan.isPaid
+                  ? `${crewActive} crew active · no seat cap — each member who joins adds a prorated $${PRO_SEAT_PRICE}/month seat`
+                  : `${crewActive} crew active · unlimited seats during your Pro trial`}
               {atCrewLimit && ' — upgrade to Pro in Settings to add more.'}
             </div>
           )}
@@ -478,23 +494,38 @@ function InviteCodesCard() {
       )}
 
       {unused.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-          {unused.map(i => (
-            <div key={i.code} style={{
-              border: '1px solid #f0e7dc', background: '#faf7f2', borderRadius: 11,
-              padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <span style={{
-                fontFamily: 'ui-monospace,monospace', fontWeight: 700, fontSize: 17,
-                letterSpacing: '.12em', color: '#3a2c20',
-              }}>{i.code}</span>
-              <span style={{
-                fontSize: 10, fontWeight: 700, textTransform: 'uppercase', borderRadius: 20,
-                padding: '3px 8px', background: '#f3e2d2', color: '#b85618',
-              }}>{roleLabel(i.role)}</span>
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            {unused.map(i => (
+              <div key={i.code} style={{
+                border: '1px solid #f0e7dc', background: '#faf7f2', borderRadius: 11,
+                padding: '10px 10px 10px 14px', display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{
+                  fontFamily: 'ui-monospace,monospace', fontWeight: 700, fontSize: 17,
+                  letterSpacing: '.12em', color: '#3a2c20',
+                }}>{i.code}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', borderRadius: 20,
+                  padding: '3px 8px', background: '#f3e2d2', color: '#b85618',
+                }}>{roleLabel(i.role)}</span>
+                <button onClick={() => revoke(i.code)} disabled={!!removing}
+                  title="Revoke this code" aria-label={`Revoke invite code ${i.code}`} style={{
+                    border: 'none', background: 'none', cursor: removing ? 'default' : 'pointer',
+                    color: '#a1927f', fontWeight: 800, fontSize: 15, padding: '0 2px', lineHeight: 1,
+                  }}>{removing === i.code ? '…' : '×'}</button>
+              </div>
+            ))}
+          </div>
+          {plan && plan.effective !== 'free' && (
+            <div style={{ fontSize: 11.5, color: '#a1927f', marginTop: 10 }}>
+              Codes are single-use and work until revoked (×).
+              {plan.isPaid
+                ? ` Every crew member who joins is billed as a seat at $${PRO_SEAT_PRICE}/month — revoke codes you no longer want out there.`
+                : ` Seats are free during your trial; on Pro each active crew member bills $${PRO_SEAT_PRICE}/month.`}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
       {unused.length === 0 && (
         <div style={{ fontSize: 12.5, color: '#a1927f', marginTop: 16 }}>

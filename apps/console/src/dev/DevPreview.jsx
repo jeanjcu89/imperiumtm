@@ -177,7 +177,7 @@ const mockData = {
   deleteJob: ok,
   addClient: ok, updateClient: ok, deleteClient: ok,
   addTemplate: ok, updateTemplate: ok, deleteTemplate: ok,
-  replyToIssue: ok, setIssueResolved: ok, updateMember: ok,
+  replyToIssue: ok, setIssueResolved: ok, updateMember: ok, deleteInvite: ok,
   createInvite: async () => ({ data: { code: 'NEW1AB', role: 'crew', created_at: new Date().toISOString() }, error: null }),
 };
 
