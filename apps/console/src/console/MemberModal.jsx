@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { planInfo, PRO_SEAT_PRICE } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
 
@@ -33,6 +34,15 @@ export default function MemberModal({ member, onClose }) {
   const [error, setError] = useState('');
 
   const canSave = name.trim().length > 0 && !busy;
+
+  // Contextual billing note: on Pro, a crew member is a billable seat, so
+  // connect the Active toggle to the money it controls.
+  const plan = planInfo(profile);
+  const seatNote = !self && role === 'crew' && plan?.isPaid
+    ? (active
+        ? `Billed as a $${PRO_SEAT_PRICE}/month seat — deactivating stops the charge (prorated).`
+        : `No charge while inactive. Reactivating adds a $${PRO_SEAT_PRICE}/month seat.`)
+    : null;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -89,12 +99,18 @@ export default function MemberModal({ member, onClose }) {
                   <option value="manager">Manager</option>
                 </select>
               </Field>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: seatNote ? 6 : 14, cursor: 'pointer' }}>
                 <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
                   style={{ width: 16, height: 16, accentColor: '#d96b2b' }} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#3a2c20' }}>Active</span>
                 <span style={{ fontSize: 11.5, color: '#a1927f' }}>— inactive members keep their history but can’t work jobs</span>
               </label>
+              {seatNote && (
+                <div style={{
+                  fontSize: 11.5, fontWeight: 600, color: '#b85618', background: '#faf0e6',
+                  borderRadius: 8, padding: '8px 11px', marginBottom: 14, lineHeight: 1.45,
+                }}>{seatNote}</div>
+              )}
             </>
           )}
 
