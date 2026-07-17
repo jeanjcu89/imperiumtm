@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { deleteOwnAccount } from '@imperium/shared';
 import { confirmDestructive, notify } from './lib/dialogs.js';
 import { StatusBar } from 'expo-status-bar';
@@ -142,18 +142,37 @@ function Gate() {
   );
 }
 
+// On web, run the phone UI in a centered phone-width column so screens
+// designed for mobile don't stretch across a desktop monitor. Native is
+// untouched (the frame is a pass-through there).
+function WebFrame({ children }) {
+  if (Platform.OS !== 'web') return children;
+  return (
+    <View style={styles.webBackdrop}>
+      <View style={styles.webColumn}>{children}</View>
+    </View>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
         <StatusBar style="dark" />
-        <Gate />
+        <WebFrame>
+          <Gate />
+        </WebFrame>
       </AuthProvider>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  webBackdrop: { flex: 1, alignItems: 'center', backgroundColor: '#ece4d6' },
+  webColumn: {
+    flex: 1, width: '100%', maxWidth: 480, backgroundColor: '#faf7f2',
+    borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#dfd3c0',
+  },
   center: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 24, backgroundColor: '#efe9e0',
