@@ -554,36 +554,104 @@ function InviteCodesCard() {
   );
 }
 
-export function TeamTab() {
+// The billing state of one member's seat under the effective plan. Managers
+// are always free; on Pro each active crew member is a $6/month seat;
+// inactive members hold no seat and bill nothing.
+function seatMeta(member, plan) {
+  if (!plan) return null;
+  if (!member.active) return { label: 'No seat', bg: '#efe9e0', fg: '#a1927f' };
+  if (member.role === 'manager') return { label: 'Free', bg: '#e2efe5', fg: '#4f8a5b' };
+  if (plan.isPaid) return { label: `$${PRO_SEAT_PRICE}/mo`, bg: '#f6e0d0', fg: '#b85618' };
+  if (plan.onTrial) return { label: 'Free in trial', bg: '#e2efe5', fg: '#4f8a5b' };
+  return { label: 'Free', bg: '#e2efe5', fg: '#4f8a5b' };
+}
+
+// Running billing total for the roster, shown atop the Team tab.
+function TeamBilling({ navigateTo }) {
+  const { profile } = useAuth();
+  const { team } = useData();
+  const plan = planInfo(profile);
+  if (!plan) return null;
+
+  const crewActive = team.filter(p => p.role === 'crew' && p.active).length;
+  const monthly = crewActive * PRO_SEAT_PRICE;
+
+  let big, sub;
+  if (plan.isPaid) {
+    big = `$${monthly.toFixed(2)} / month`;
+    sub = `${crewActive} crew seat${crewActive === 1 ? '' : 's'} × $${PRO_SEAT_PRICE}/mo · managers free${crewActive === 0 ? ' (billed at the 1-seat minimum)' : ''}`;
+  } else if (plan.onTrial) {
+    big = 'Free during your Pro trial';
+    sub = `${crewActive} crew active · about $${monthly.toFixed(2)}/mo after the trial (${plan.trialDaysLeft} day${plan.trialDaysLeft === 1 ? '' : 's'} left) · managers free`;
+  } else {
+    big = `${crewActive} of ${FREE_CREW_SEATS} free crew seats`;
+    sub = 'Free plan · $0/month. Upgrade to Pro to add more crew.';
+  }
+
+  return (
+    <div style={{
+      ...card, padding: 16, marginBottom: 14, display: 'flex', alignItems: 'center',
+      gap: 12, flexWrap: 'wrap',
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#a1927f', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+          Current billing
+        </div>
+        <div style={{ fontFamily: franklin, fontWeight: 800, fontSize: 20, marginTop: 2 }}>{big}</div>
+        <div style={{ fontSize: 12, color: '#8a7d70', marginTop: 2 }}>{sub}</div>
+      </div>
+      <button onClick={() => navigateTo && navigateTo('settings')} style={{
+        marginLeft: 'auto', border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+        fontWeight: 700, fontSize: 12.5, borderRadius: 9, padding: '9px 16px', cursor: 'pointer',
+      }}>{plan.isPaid ? 'Manage billing' : 'Plan & billing'}</button>
+    </div>
+  );
+}
+
+export function TeamTab({ navigateTo }) {
+  const { profile } = useAuth();
   const { team } = useData();
   const isMobile = useIsMobile();
   const [editing, setEditing] = useState(null); // team member being edited
+  const plan = planInfo(profile);
 
   return (
     <>
+      <TeamBilling navigateTo={navigateTo} />
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14 }}>
-        {team.map(p => (
-          <div key={p.id} style={{ ...card, padding: 16, opacity: p.active ? 1 : 0.65 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: '50%', background: '#f3e2d2',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#b85618',
-              }}>{p.initials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 11.5, color: '#a1927f' }}>
-                  {roleLabel(p.role)}{p.active ? '' : ' · inactive'}
+        {team.map(p => {
+          const seat = seatMeta(p, plan);
+          return (
+            <div key={p.id} style={{ ...card, padding: 16, opacity: p.active ? 1 : 0.65 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%', background: '#f3e2d2',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#b85618',
+                }}>{p.initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11.5, color: '#a1927f' }}>
+                      {roleLabel(p.role)}{p.active ? '' : ' · inactive'}
+                    </span>
+                    {seat && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px',
+                        background: seat.bg, color: seat.fg,
+                      }}>{seat.label}</span>
+                    )}
+                  </div>
                 </div>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.active ? '#4f8a5b' : '#d8c5ad', flex: 'none' }} />
+                <button onClick={() => setEditing(p)} style={{
+                  border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
+                  fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px',
+                  cursor: 'pointer', flex: 'none',
+                }}>Edit</button>
               </div>
-              <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.active ? '#4f8a5b' : '#d8c5ad', flex: 'none' }} />
-              <button onClick={() => setEditing(p)} style={{
-                border: '1px solid #e0d3c2', background: '#fff', color: '#8a7d70',
-                fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '5px 11px',
-                cursor: 'pointer', flex: 'none',
-              }}>Edit</button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <InviteCodesCard />
       {editing && <MemberModal member={editing} onClose={() => setEditing(null)} />}
