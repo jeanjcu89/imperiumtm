@@ -452,6 +452,8 @@ function InviteCodesCard() {
   ].filter(i => !revoked.includes(i.code));
   const unused = merged.filter(i => !i.used_at);
   const used = merged.filter(i => i.used_at);
+  // Who redeemed each used code: used_by is their profile id (= team id).
+  const nameById = Object.fromEntries(team.map(p => [p.id, p.name]));
 
   const genBtn = (role, label) => (
     <button onClick={() => generate(role)} disabled={!!busy} style={{
@@ -540,7 +542,9 @@ function InviteCodesCard() {
             {used.map(i => (
               <div key={i.code} style={{ fontSize: 12, color: '#a1927f' }}>
                 <span style={{ fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }}>{i.code}</span>
-                {' · '}{roleLabel(i.role)}{' · used '}{timeMeta(i.used_at)}
+                {' · '}{roleLabel(i.role)}
+                {' · '}<span style={{ color: '#3a2c20', fontWeight: 600 }}>{nameById[i.used_by] ?? 'a former member'}</span>
+                {' · '}{timeMeta(i.used_at)}
               </div>
             ))}
           </div>
