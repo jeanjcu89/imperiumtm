@@ -145,16 +145,40 @@ function Gate() {
 // On web, run the phone UI in a centered phone-width column so screens
 // designed for mobile don't stretch across a desktop monitor. Native is
 // untouched (the frame is a pass-through there).
-function WebFrame({ children }) {
+function WebFrame({ children, width }) {
   if (Platform.OS !== 'web') return children;
   return (
     <View style={styles.webBackdrop}>
-      <View style={styles.webColumn}>{children}</View>
+      <View style={[styles.webColumn, width ? { maxWidth: width } : null]}>{children}</View>
     </View>
   );
 }
 
+// Dev-only design preview with mock data, mirroring the console's ?mock=1:
+// web dev server + /?mock=1. __DEV__ is false in release bundles, so this
+// path (and the require) never runs in production.
+function mockRequested() {
+  return __DEV__ && Platform.OS === 'web' && typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).has('mock');
+}
+
 export default function App() {
+  if (mockRequested()) {
+    const { MockProviders } = require('./dev/mock.js');
+    // Phone-true 390px column so headless screenshots (which can't open a
+    // window narrower than ~520px) capture the UI at real device width.
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <WebFrame width={390}>
+          <MockProviders>
+            <Shell />
+          </MockProviders>
+        </WebFrame>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

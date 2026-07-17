@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { fetchProfile, signIn, signOut, signUpWithInvite } from '@imperium/shared';
 import { client } from '../lib/client.js';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 // RN mirror of the console's AuthProvider: session from AsyncStorage-backed

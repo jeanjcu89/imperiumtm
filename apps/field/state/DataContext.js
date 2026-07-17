@@ -8,7 +8,7 @@ import {
 } from '@imperium/shared';
 import { useAuth } from './AuthContext.js';
 
-const DataContext = createContext(null);
+export const DataContext = createContext(null);
 export const useData = () => useContext(DataContext);
 
 // Live data for the signed-in CREW member. Mount only when a profile exists

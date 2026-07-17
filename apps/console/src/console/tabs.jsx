@@ -180,7 +180,7 @@ function GettingStartedCard({ navigateTo, startTour }) {
 
 export function DashboardTab({ navigateTo, startTour }) {
   const { profile } = useAuth();
-  const { jobs, team, issues } = useData();
+  const { jobs, team, issues, timeEntries } = useData();
   const isMobile = useIsMobile();
   const [lightbox, setLightbox] = useState(null); // { path, title, sub, takenAt }
   const showGettingStarted = profile.role === 'manager' && !profile.onboardedAt;
@@ -188,11 +188,18 @@ export function DashboardTab({ navigateTo, startTour }) {
   const approvedCount = jobs.filter(j => j.status === 'approved').length;
   const reviewCount = jobs.filter(j => j.status === 'submitted').length;
   const crewCount = team.filter(p => p.role === 'crew').length;
+  // Hours logged this week (open entries count up to now) — same window as Reports.
+  const thisMonday = startOfWeek(new Date());
+  const weekStart = thisMonday.getTime();
+  const weekEnd = addDays(thisMonday, 7).getTime();
+  const hoursThisWeek = timeEntries
+    .filter(e => { const t = new Date(e.clockIn).getTime(); return t >= weekStart && t < weekEnd; })
+    .reduce((s, e) => s + entryHours(e), 0);
   const stats = [
     { label: 'Active jobs', value: String(activeCount), sub: `across ${crewCount} crew`, color: '#d96b2b' },
     { label: 'Completed', value: String(approvedCount), sub: 'approved', color: '#4f8a5b' },
     { label: 'Pending review', value: String(reviewCount), sub: 'need approval', color: '#c9922b' },
-    { label: 'Hours logged', value: '—', sub: 'this week', color: '#3a2c20' },
+    { label: 'Hours logged', value: hoursThisWeek > 0 ? hoursThisWeek.toFixed(1) : '—', sub: 'this week', color: '#3a2c20' },
   ];
 
   return (

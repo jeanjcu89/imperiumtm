@@ -14,6 +14,19 @@
       "port": 5174
     },
     {
+      "name": "landing",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/static-server.js", "apps/landing", "8100"],
+      "port": 8100
+    },
+    {
+      "name": "field-dev-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8081"],
+      "cwd": "apps/field",
+      "port": 8081
+    },
+    {
       "name": "field-web",
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/static-server.js", "apps/field/dist", "8099"],
