@@ -22,13 +22,14 @@ accounts, DNS) · **Claude** (code) — check items off as they land.
 - [ ] **Transactional email (Jean)** — Resend, THE top item. Without it,
       confirmation/reset emails rate-limit at ~3/hr and land in spam.
       - [x] Resend account created
-      - [ ] Verify domain `imperiumtm.com` (root; DNS is on Netlify —
-            add Resend's MX + SPF + DKIM records under Domains →
-            imperiumtm.com). Root is a clean slate — no existing SPF/MX.
+      - [x] Domain `imperiumtm.com` verified in Resend (DKIM/SPF/MX)
+      - [x] Branded auth email templates built with the Imperium logo
+            ([docs/email-templates/](email-templates)) — ready to paste
       - [ ] Supabase → Auth → SMTP Settings: custom SMTP via
             `smtp.resend.com:465` (user `resend`, pass = Resend API key),
-            sender `no-reply@imperiumtm.com`.
-      - [ ] (optional) brand the Supabase auth email templates.
+            sender `no-reply@imperiumtm.com`; paste the two templates;
+            raise the email rate limit. **Test: "Forgot password?" →
+            inbox, not spam.** ← last step, still to do.
 - [ ] **Terms of Service (Claude drafts → Jean lawyer-skims)** —
       terms.html: service description, billing & refund policy, liability.
       Link from footer, signup, checkout.
@@ -41,10 +42,11 @@ accounts, DNS) · **Claude** (code) — check items off as they land.
 
 ## 🎯 Quick wins — funnel & measurement
 
-- [ ] Contact / intake form on landing (Netlify Forms) — **Claude, in progress**
-- [ ] Newsletter signup wired to Resend Audience — **Claude, in progress**
-      (function ships dark; lights up when Jean adds `RESEND_API_KEY` +
-      `RESEND_AUDIENCE_ID` to the landing site's Netlify env)
+- [x] Contact / intake form on landing (Netlify Forms) — verify
+      submissions notify info@margian.co (Netlify → Forms → notifications)
+- [x] Newsletter signup wired to Resend Audience — **live & verified
+      end-to-end** (env vars set, valid key + audience). Delete the
+      `probe-delete-me@imperiumtm.com` test contact from the audience.
 - [ ] Landing CTA deep-links into "Create company" mode instead of the
       sign-in tab (Claude)
 - [ ] Signup consent line "By creating a company you agree to Terms &
