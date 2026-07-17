@@ -19,17 +19,14 @@ accounts, DNS) · **Claude** (code) — check items off as they land.
 
 ## 🚨 Blockers — before spending marketing effort
 
-- [ ] **Transactional email (Jean)** — Resend, THE top item. Without it,
-      confirmation/reset emails rate-limit at ~3/hr and land in spam.
-      - [x] Resend account created
-      - [x] Domain `imperiumtm.com` verified in Resend (DKIM/SPF/MX)
-      - [x] Branded auth email templates built with the Imperium logo
-            ([docs/email-templates/](email-templates)) — ready to paste
-      - [ ] Supabase → Auth → SMTP Settings: custom SMTP via
-            `smtp.resend.com:465` (user `resend`, pass = Resend API key),
-            sender `no-reply@imperiumtm.com`; paste the two templates;
-            raise the email rate limit. **Test: "Forgot password?" →
-            inbox, not spam.** ← last step, still to do.
+- [x] **Transactional email (Jean)** — DONE & verified in production. A
+      password-reset test delivered the branded email through Resend SMTP
+      on the verified `imperiumtm.com` domain (DKIM/SPF), and the link
+      opened the console's set-new-password screen.
+      - [x] Resend account + domain verified (DKIM/SPF/MX)
+      - [x] Branded auth templates with logo ([docs/email-templates/](email-templates))
+      - [x] Supabase custom SMTP (`smtp.resend.com:465`), templates pasted,
+            redirect URL `https://app.imperiumtm.com` allow-listed
 - [ ] **Terms of Service (Claude drafts → Jean lawyer-skims)** —
       terms.html: service description, billing & refund policy, liability.
       Link from footer, signup, checkout.
