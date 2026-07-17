@@ -48,8 +48,24 @@ accounts, DNS) · **Claude** (code) — check items off as they land.
       Fathom / GA4; Claude wires it)
 - [ ] Error monitoring (Sentry free tier) + uptime pings on console &
       landing (Jean creates accounts, Claude wires)
-- [ ] Stripe housekeeping (Jean, ~10 min): customer receipt emails ON,
-      Smart Retries ON, statement descriptor `IMPERIUMTM`
+- [ ] **Dedicated Stripe account for Imperium (Jean, ~15 min)** — the
+      Margian account processes other client revenue, and statement
+      descriptors are account-level, so Imperium needs its own account:
+      1. Stripe switcher → Create → **Create account** → name "Imperium TM"
+         (same Margian Digital LLC entity, same Mercury payout bank).
+      2. Statement descriptor `IMPERIUMTM` (Settings → Business → Public
+         details) — so card statements are recognizable and don't trigger
+         disputes.
+      3. Re-run [billing-setup.md](billing-setup.md) steps 1–3 in the new
+         account: $6/mo price, webhook endpoint, then swap
+         `STRIPE_SECRET_KEY` / `STRIPE_PRICE_ID` / `STRIPE_WEBHOOK_SECRET`
+         in Netlify and redeploy.
+      4. In the new account: customer receipt emails ON (Settings →
+         Customer emails), Smart Retries ON (Settings → Revenue recovery).
+      5. Old account: cancel the Jul 17 test subscription **immediately**
+         and refund the $6.
+      6. Ping Claude to re-probe the endpoints, then one fresh checkout
+         test against the new account.
 - [ ] Supabase Auth: confirm `https://app.imperiumtm.com` is in Redirect
       URLs (password reset) — Jean, may already be done
 
