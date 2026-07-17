@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getPhotoUrl } from '@imperium/shared';
+import { getPhotoUrl, planInfo, isPhotoLocked, PHOTO_RETENTION_DAYS } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 
 const franklin = "'Libre Franklin',sans-serif";
@@ -64,10 +64,38 @@ export function Lightbox({ photo, onClose }) {
   );
 }
 
+// Free-plan archive gate: photos older than the retention window render as a
+// locked tile instead of resolving a signed URL. Nothing is deleted — the
+// photo unlocks the moment the company upgrades (or their trial resumes).
+function useArchiveLocked(path) {
+  const { profile } = useAuth();
+  return isPhotoLocked(path, planInfo(profile));
+}
+
+const lockIcon = (size = 16) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="#a1927f"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
 // Review-grid thumbnail: 4:3 (taller than a letterbox crop), click to open
 // the lightbox with the full-size photo.
 export function ItemPhoto({ path, onOpen }) {
-  const url = usePhotoUrl(path);
+  const locked = useArchiveLocked(path);
+  const url = usePhotoUrl(locked ? null : path);
+  if (locked) {
+    return (
+      <div style={{
+        ...photoPlaceholder, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 5,
+      }} title={`Photos older than ${PHOTO_RETENTION_DAYS} days are archived on the free plan`}>
+        {lockIcon(18)}
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#a1927f' }}>In archive — Pro unlocks</span>
+      </div>
+    );
+  }
   if (!url) return <div style={photoPlaceholder} />;
   return (
     <img src={url} alt="" onClick={(e) => { e.stopPropagation(); onOpen(e); }} style={{
@@ -79,14 +107,23 @@ export function ItemPhoto({ path, onOpen }) {
 
 // Compact issue thumbnail; click opens the lightbox.
 export function IssuePhoto({ path, onOpen, size = 52 }) {
-  const url = usePhotoUrl(path);
+  const locked = useArchiveLocked(path);
+  const url = usePhotoUrl(locked ? null : path);
   return (
-    <div onClick={url ? (e) => { e.stopPropagation(); onOpen(e); } : undefined} style={{
-      flex: 'none', width: size, height: size, borderRadius: 9, overflow: 'hidden',
-      border: '1px solid #e4d6c4', background: '#efe4d5',
-      cursor: url ? 'zoom-in' : 'default',
-    }}>
-      {url ? <img src={url} alt="issue" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
+    <div
+      onClick={!locked && url ? (e) => { e.stopPropagation(); onOpen(e); } : undefined}
+      title={locked ? `Photos older than ${PHOTO_RETENTION_DAYS} days are archived on the free plan` : undefined}
+      style={{
+        flex: 'none', width: size, height: size, borderRadius: 9, overflow: 'hidden',
+        border: '1px solid #e4d6c4', background: '#efe4d5',
+        cursor: !locked && url ? 'zoom-in' : 'default',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+      {locked
+        ? lockIcon(15)
+        : url
+          ? <img src={url} alt="issue" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : null}
     </div>
   );
 }

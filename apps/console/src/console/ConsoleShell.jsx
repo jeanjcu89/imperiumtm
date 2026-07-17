@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { initials } from '@imperium/shared';
+import React, { useEffect, useRef, useState } from 'react';
+import { initials, planInfo } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
+import { billingRequest } from '../lib/billing.js';
 import useIsMobile from '../useIsMobile.js';
 import { navEntries, tabTitles } from './sampleData.js';
 import BrandMark from '../BrandMark.jsx';
@@ -61,6 +62,26 @@ const routeFromHash = () => {
   }
 };
 
+// Quiet plan status above the user card: informative during the trial,
+// an upgrade nudge on free, invisible on Pro (and pre-v11 databases).
+function PlanChip({ onOpen }) {
+  const { profile } = useAuth();
+  const plan = planInfo(profile);
+  if (!plan || plan.isPaid) return null;
+  const urgent = plan.isFree || plan.trialDaysLeft <= 7;
+  const label = plan.onTrial
+    ? `Pro trial · ${plan.trialDaysLeft} day${plan.trialDaysLeft === 1 ? '' : 's'} left`
+    : 'Free plan — upgrade';
+  return (
+    <button onClick={onOpen} title="Plan & billing" style={{
+      display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+      border: 'none', borderRadius: 9, padding: '8px 11px', marginBottom: 8,
+      background: '#4a3928', color: urgent ? '#f0a35e' : '#c9b8a3',
+      fontSize: 11.5, fontWeight: 700,
+    }}>{label}</button>
+  );
+}
+
 function Sidebar({ tab, setTab, onNavigate }) {
   const { profile, signOut } = useAuth();
   const { jobs, issues } = useData();
@@ -98,6 +119,7 @@ function Sidebar({ tab, setTab, onNavigate }) {
         );
       })}
       <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.08)' }}>
+        <PlanChip onOpen={() => { setTab('settings'); if (onNavigate) onNavigate(); }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px' }}>
           <div style={{
             width: 32, height: 32, borderRadius: '50%', background: '#5a4736', flex: 'none',
@@ -127,7 +149,7 @@ function Sidebar({ tab, setTab, onNavigate }) {
 
 export default function ConsoleShell() {
   const { client, profile, refreshProfile } = useAuth();
-  const { ready } = useData();
+  const { ready, team } = useData();
   const isMobile = useIsMobile();
   const [route, setRoute] = useState(routeFromHash);
   // null = closed; an object (possibly empty) = open, carrying modal prefill.
@@ -148,6 +170,39 @@ export default function ConsoleShell() {
       refreshProfile();
     }
   };
+
+  // Returning from Stripe Checkout (/?billing=success#settings): the webhook
+  // flips the plan server-side, so poll the profile until Pro appears. This
+  // lives in the shell — not BillingSection — so navigating away from
+  // Settings can't strand the app on stale free/trial state.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('billing') !== 'success') {
+      if (q.has('billing')) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+      return;
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    let tries = 0;
+    const t = setInterval(async () => {
+      tries += 1;
+      const { data } = (await refreshProfile()) ?? {};
+      if (data?.plan === 'pro' || tries >= 10) clearInterval(t);
+    }, 3000);
+    return () => clearInterval(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pro seat quantity follows the active crew count. Team changes arrive
+  // here via realtime (member edits AND invite signups), so this stays
+  // correct whichever tab the manager is on; sync-seats recounts server-side
+  // and no-ops when nothing changed.
+  const crewActive = team.filter(p => p.role === 'crew' && p.active).length;
+  const seatSyncRef = useRef(null);
+  useEffect(() => {
+    if (!ready || profile?.plan !== 'pro') return;
+    if (seatSyncRef.current === crewActive) return;
+    seatSyncRef.current = crewActive;
+    billingRequest(client, 'sync-seats').catch(() => {});
+  }, [ready, crewActive, profile?.plan, client]);
 
   // Writing the hash keeps the route through a refresh; the hashchange
   // listener keeps state in sync when back/forward moves the hash.

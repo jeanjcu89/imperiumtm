@@ -2,6 +2,13 @@
   command = "npm run build:console"
   publish = "apps/console/dist"
 
+# Billing endpoints (Stripe checkout / portal / seat sync / webhook).
+# Required env vars in Site configuration: SUPABASE_URL (or VITE_SUPABASE_URL),
+# SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_PRICE_ID,
+# STRIPE_WEBHOOK_SECRET. See docs/billing-setup.md.
+[functions]
+  directory = "netlify/functions"
+
 # Pretty URLs for the static store-compliance pages (must precede the SPA
 # catch-all; App Store Connect links to /privacy and /support).
 [[redirects]]

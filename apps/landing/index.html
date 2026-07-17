@@ -149,6 +149,20 @@
   .p-scr { background: var(--bg); border-radius: 26px; overflow: hidden; }
   .p-shot { display: block; width: 100%; height: auto; }
 
+  /* pricing */
+  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; align-items: stretch; max-width: 720px; }
+  .plan { display: flex; flex-direction: column; }
+  .plan .price { font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: 38px; line-height: 1.1; margin: 2px 0; }
+  .plan .per { font-size: 13px; color: var(--faint); font-weight: 600; margin-left: 5px; }
+  .plan-sub { font-size: 13px; color: var(--mut); margin: 0 0 10px; }
+  .feats { list-style: none; margin: 0 0 14px; padding: 0; }
+  .feats li { font-size: 13.5px; color: var(--mut); padding: 8px 0 8px 25px; border-top: 1px solid #f4ede3; position: relative; }
+  .feats li::before { content: '✓'; position: absolute; left: 3px; color: var(--orange); font-weight: 800; }
+  .plan.pop { border-color: #e8c9b0; box-shadow: 0 14px 40px rgba(217,107,43,.13); }
+  .plan .cta { margin-top: auto; justify-content: center; }
+  .trial-strip { margin-top: 18px; max-width: 720px; background: var(--cream); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; color: #6b5642; line-height: 1.6; }
+  .trial-strip b { color: #3a2c20; }
+
   footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--faint); font-size: 13px; }
   .foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
   footer a { color: var(--mut); text-decoration: none; font-weight: 600; margin-right: 18px; }
@@ -165,6 +179,7 @@
     </div>
     <nav>
       <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
       <a href="./support.html">Support</a>
       <a href="./privacy.html">Privacy</a>
       <a href="https://app.imperiumtm.com" style="color:#d96b2b">Manager sign in →</a>
@@ -299,7 +314,45 @@
   </div>
 </section>
 
-<section style="padding-top: 0">
+<section id="pricing" style="padding-top: 0">
+  <div class="wrap">
+    <h2>Simple pricing</h2>
+    <p class="sub">Free for tiny teams. One per-seat price when you grow — managers are always free.</p>
+    <div class="plans">
+      <div class="card plan">
+        <div><span class="badge" style="background:#efe9e0; color:#8a7d70">Free</span></div>
+        <div class="price">$0<span class="per">/ month</span></div>
+        <p class="plan-sub">For solo operators and two-person crews.</p>
+        <ul class="feats">
+          <li>1 manager + 2 crew</li>
+          <li>The full proof loop — checklists, photo proof, timestamps, approvals</li>
+          <li>Schedules, timesheets, issues &amp; chat</li>
+          <li>30-day photo archive</li>
+        </ul>
+      </div>
+      <div class="card plan pop">
+        <div><span class="badge">Pro</span></div>
+        <div class="price">$6<span class="per">/ crew seat / month</span></div>
+        <p class="plan-sub">Managers free. Cancel anytime.</p>
+        <ul class="feats">
+          <li>Unlimited crew &amp; manager seats</li>
+          <li>Every proof photo kept forever</li>
+          <li>Everything in Free</li>
+          <li>Seat changes prorated automatically</li>
+        </ul>
+        <a class="cta" href="https://app.imperiumtm.com"><span>Start 30 days of Pro, free</span></a>
+      </div>
+    </div>
+    <div class="trial-strip">
+      Every new company starts with <b>30 days of Pro, free</b> — whole crew,
+      no card required. When the trial ends you land on the free plan; nothing
+      is deleted. And if you refer another company, <b>you both get +30 days
+      of Pro</b> — up to six referrals.
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
   <div class="wrap">
     <div class="proof">
       <div>

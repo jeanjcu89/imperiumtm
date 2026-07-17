@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   statusMeta, prog, timeMeta, photoTimestamp, initials,
   ymd, startOfWeek, addDays, entryHours, setOnboarded,
+  planInfo, FREE_CREW_SEATS,
 } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import { useData } from '../DataContext.jsx';
@@ -407,10 +408,19 @@ export function JobsTab({ param, navigateTo }) {
 const roleLabel = (role) => role === 'manager' ? 'Manager' : 'Crew';
 
 function InviteCodesCard() {
-  const { invites, createInvite } = useData();
+  const { profile } = useAuth();
+  const { invites, createInvite, team } = useData();
   const [local, setLocal] = useState([]);   // optimistic: codes created this session
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
+
+  const plan = planInfo(profile);
+  const crewActive = team.filter(p => p.role === 'crew' && p.active).length;
+  // Mirrors the server-side seat gate so the state is visible before the
+  // generate button ever errors (the DB trigger stays the enforcer). Only
+  // the crew limit drives the hint — a free company always has its one
+  // manager, so a manager-limit hint would show permanently.
+  const atCrewLimit = plan?.effective === 'free' && crewActive >= FREE_CREW_SEATS;
 
   const generate = async (role) => {
     if (busy) return;
@@ -448,6 +458,14 @@ function InviteCodesCard() {
             Crew enter their code in the Imperium field app; managers use theirs
             on this console's sign-in page ("Have an invite code?").
           </div>
+          {plan && (
+            <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 5, color: atCrewLimit ? '#b85618' : '#8a7d70' }}>
+              {plan.effective === 'free'
+                ? `${crewActive} of ${FREE_CREW_SEATS} free crew seats in use`
+                : `${crewActive} crew active · unlimited seats on ${plan.isPaid ? 'Pro' : 'your Pro trial'}`}
+              {atCrewLimit && ' — upgrade to Pro in Settings to add more.'}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 9 }}>
           {genBtn('crew', 'Generate crew invite')}

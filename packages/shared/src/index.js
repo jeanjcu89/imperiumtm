@@ -146,17 +146,44 @@ export function recurrenceDates({ start, until, frequency, weekdays = [], maxCou
 /* ── auth ────────────────────────────────────────────────────────── */
 
 // New company → the signup trigger creates the company + manager profile.
-export const signUpCompany = (client, { email, password, fullName, companyName }) =>
+// referralCode (optional) grants +30 trial days to both companies (v11).
+export const signUpCompany = (client, { email, password, fullName, companyName, referralCode }) =>
   client.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, company_name: companyName } },
+    options: { data: {
+      full_name: fullName, company_name: companyName,
+      ...(referralCode?.trim() ? { referral_code: referralCode.trim() } : {}),
+    } },
   });
 
+// PostgREST reports a missing RPC as PGRST202 (schema-cache miss); a raw
+// Postgres undefined-function raise would be 42883. Either means the v11
+// migration isn't applied and the check should be skipped.
+const rpcMissing = (error) => error?.code === 'PGRST202' || error?.code === '42883';
+
+// Pre-signup referral check. A missing RPC (v11 not applied) reports valid —
+// the trigger just skips the bonus in that case.
+export async function validateReferral(client, code) {
+  const { data, error } = await client.rpc('validate_referral', { p_code: code });
+  if (error) return rpcMissing(error) ? { data: true, error: null } : { data: null, error };
+  return { data: !!data, error: null };
+}
+
 // Invite code → the signup trigger attaches the user to the invite's company.
+// Both checks run BEFORE auth.signUp because a raise inside the signup trigger
+// surfaces as an opaque "Database error saving new user".
 export async function signUpWithInvite(client, { email, password, fullName, inviteCode }) {
   const { data: valid, error: vErr } = await client.rpc('validate_invite', { p_code: inviteCode });
   if (vErr) return { data: null, error: vErr };
   if (!valid) return { data: null, error: new Error('Invalid or already-used invite code') };
+  // Seat gate (v11). RPC missing (42883) → migration not applied → no limits.
+  const { data: seatOk, error: sErr } = await client.rpc('invite_seat_available', { p_code: inviteCode });
+  if (!sErr && seatOk === false) {
+    return {
+      data: null,
+      error: new Error("This company's free plan is out of seats — ask your manager to upgrade to Pro."),
+    };
+  }
   return client.auth.signUp({
     email, password,
     options: { data: { full_name: fullName, invite_code: inviteCode } },
@@ -168,29 +195,36 @@ export const signIn = (client, { email, password }) =>
 
 export const signOut = (client) => client.auth.signOut();
 
+// Sign-in must never depend on an optional feature column, so the select
+// degrades: full (v11 plan columns) → v8 (onboarded_at) → v2 baseline.
+// Missing columns leave plan null, which planInfo() treats as "no plan
+// system" — the apps behave exactly as before the migration.
+const PROFILE_SELECTS = [
+  'id, company_id, full_name, role, active, onboarded_at, companies ( name, plan, trial_ends_at, trial_extended_at, referral_code )',
+  'id, company_id, full_name, role, active, onboarded_at, companies ( name )',
+  'id, company_id, full_name, role, active, companies ( name )',
+];
+
 export const fetchProfile = async (client) => {
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) return { data: null, error };
-  let res = await client.from('profiles')
-    .select('id, company_id, full_name, role, active, onboarded_at, companies ( name )')
-    .eq('id', data.user.id)
-    .single();
-  if (res.error?.code === '42703') {
-    // onboarded_at doesn't exist yet (v8 migration not run). Sign-in must
-    // never depend on an optional feature column, so retry without it —
-    // the getting-started card simply shows until the migration lands.
-    res = await client.from('profiles')
-      .select('id, company_id, full_name, role, active, companies ( name )')
-      .eq('id', data.user.id)
-      .single();
+  let res;
+  for (const sel of PROFILE_SELECTS) {
+    res = await client.from('profiles').select(sel).eq('id', data.user.id).single();
+    if (res.error?.code !== '42703') break; // 42703 = undefined column
   }
   const p = res.data;
+  const c = p?.companies;
   return {
     data: p && {
       id: p.id, companyId: p.company_id, fullName: p.full_name,
-      role: p.role, active: p.active, companyName: p.companies?.name ?? '',
+      role: p.role, active: p.active, companyName: c?.name ?? '',
       email: data.user.email ?? '',
       onboardedAt: p.onboarded_at ?? null,
+      plan: c?.plan ?? null,
+      trialEndsAt: c?.trial_ends_at ?? null,
+      trialExtendedAt: c?.trial_extended_at ?? null,
+      referralCode: c?.referral_code ?? null,
     },
     error: res.error,
   };
@@ -221,6 +255,58 @@ export const updateMember = async (client, id, { fullName, role, active }) => {
 // Set when a manager finishes or dismisses the getting-started tour.
 export const setOnboarded = (client, userId) =>
   client.from('profiles').update({ onboarded_at: new Date().toISOString() }).eq('id', userId);
+
+/* ── plans & billing (v11) ───────────────────────────────────────── */
+
+export const FREE_CREW_SEATS = 2;
+export const FREE_MANAGER_SEATS = 1;
+export const PHOTO_RETENTION_DAYS = 30;
+export const PRO_SEAT_PRICE = 6; // USD / crew seat / month, managers free
+
+// Derives the effective plan from a fetchProfile() result. Returns null when
+// the v11 migration hasn't been applied (profile.plan is null) — callers must
+// treat null as "no plan system": no gates, no chips, no locks.
+export function planInfo(profile) {
+  if (!profile?.plan) return null;
+  const paid = profile.plan === 'pro';
+  const ends = profile.trialEndsAt ? new Date(profile.trialEndsAt) : null;
+  const onTrial = !paid && !!ends && ends > new Date();
+  const effective = paid ? 'pro' : onTrial ? 'trial' : 'free';
+  return {
+    effective,
+    isPaid: paid,
+    onTrial,
+    isFree: effective === 'free',
+    trialEndsAt: ends,
+    trialDaysLeft: onTrial ? Math.max(1, Math.ceil((ends - Date.now()) / 86_400_000)) : 0,
+    canExtendTrial: !paid && !profile.trialExtendedAt,
+    referralCode: profile.referralCode ?? null,
+  };
+}
+
+// Free plan archives (never deletes) photos older than the retention window.
+// plan is a planInfo() result; null (no plan system) locks nothing.
+export function isPhotoLocked(path, plan) {
+  if (!plan || plan.effective !== 'free') return false;
+  const ts = photoTimestamp(path);
+  return !!ts && Date.now() - new Date(ts).getTime() > PHOTO_RETENTION_DAYS * 86_400_000;
+}
+
+// One-time +14 day trial extension (manager only; enforced server-side).
+export const extendTrial = (client) => client.rpc('extend_trial');
+
+// Referrals this company has earned (as referrer). A missing table (v11 not
+// applied) reports an empty list.
+export const fetchReferrals = (client) =>
+  client.from('referrals')
+    .select('id, days_granted, created_at')
+    .order('created_at', { ascending: false })
+    .then(({ data, error }) => error?.code === '42P01'
+      ? { data: [], error: null }
+      : {
+          data: data?.map(r => ({ id: r.id, daysGranted: r.days_granted, createdAt: r.created_at })) ?? null,
+          error,
+        });
 
 export const changePassword = (client, newPassword) =>
   client.auth.updateUser({ password: newPassword });

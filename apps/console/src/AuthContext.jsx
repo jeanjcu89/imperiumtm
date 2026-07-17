@@ -37,9 +37,10 @@ export function AuthProvider({ children }) {
   }, [session?.user?.id]);
 
   // Re-pull the profile after Settings edits so the sidebar (name, company)
-  // updates without a reload.
+  // updates without a reload. Resolves with the result so callers (billing
+  // activation poll) can inspect the fresh plan.
   const refreshProfile = () =>
-    fetchProfile(client).then(({ data }) => { if (data) setProfile(data); });
+    fetchProfile(client).then((res) => { if (res.data) setProfile(res.data); return res; });
 
   const value = {
     client,

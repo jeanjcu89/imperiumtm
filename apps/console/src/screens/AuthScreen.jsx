@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signUpWithInvite } from '@imperium/shared';
+import { signUpWithInvite, validateReferral } from '@imperium/shared';
 import { useAuth } from '../AuthContext.jsx';
 import BrandMark from '../BrandMark.jsx';
 
@@ -28,6 +28,7 @@ export default function AuthScreen() {
   const [companyName, setCompanyName] = useState('');
   const [fullName, setFullName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -52,10 +53,25 @@ export default function AuthScreen() {
         if (err) setError(err.message);
         // On success the auth listener swaps this screen out.
       } else {
+        // A mistyped referral shouldn't silently cost the +30 day bonus —
+        // check it up front and let the owner fix or clear it. A transient
+        // check failure is NOT "invalid": don't coach discarding a good code.
+        if (mode === 'create' && referralCode.trim()) {
+          const { data: refOk, error: refErr } = await validateReferral(client, referralCode.trim());
+          if (refErr) {
+            setError("Couldn't check the referral code just now — try again in a moment.");
+            return;
+          }
+          if (!refOk) {
+            setError("That referral code isn't valid or has reached its referral limit — fix it, or clear the field to sign up without one (you still get 30 days of Pro free).");
+            return;
+          }
+        }
         const { data, error: err } = mode === 'create'
           ? await signUpCompany({
               email: email.trim(), password,
               fullName: fullName.trim(), companyName: companyName.trim(),
+              referralCode: referralCode.trim(),
             })
           : await signUpWithInvite(client, {
               email: email.trim(), password,
@@ -65,7 +81,9 @@ export default function AuthScreen() {
           setError(err.message);
         } else if (data?.user && !data.session) {
           // Email confirmation is on: no session until the link is clicked.
-          setNotice('Check your email to confirm your account, then sign in.');
+          setNotice(mode === 'create'
+            ? 'Check your email to confirm your account, then sign in — your 30-day Pro trial starts right away.'
+            : 'Check your email to confirm your account, then sign in.');
           setMode('signin');
         }
       }
@@ -120,6 +138,12 @@ export default function AuthScreen() {
           {mode !== 'signin' && (
             <Field label="Your name" type="text" value={fullName}
               onChange={e => setFullName(e.target.value)} placeholder="Dana Lowe" autoComplete="name" />
+          )}
+          {mode === 'create' && (
+            <Field label="Referral code (optional — you both get +30 trial days)" type="text"
+              value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="From another Imperium company" autoComplete="off"
+              style={{ ...inputStyle, fontFamily: 'ui-monospace,monospace', letterSpacing: '.1em' }} />
           )}
           <Field label="Email" type="email" value={email}
             onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />

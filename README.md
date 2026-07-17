@@ -22,9 +22,12 @@ packages/
   shared/       the one data layer both apps use (Supabase client, queries,
                 photos, realtime, auth helpers)
 supabase/
-  migrations/   SQL — run every file in filename order (v2 → v10)
+  migrations/   SQL — run every file in filename order (v2 → v11)
+netlify/
+  functions/    Stripe billing endpoints (checkout, portal, seat sync,
+                webhook) — deployed with the console site
 scripts/        operational SQL (e.g. refresh the App Review demo company)
-docs/           App Store submission metadata & checklists
+docs/           App Store submission metadata; billing-setup.md (Stripe)
 netlify.toml    builds apps/console; serves /privacy and /support
 ```
 
@@ -39,6 +42,26 @@ netlify.toml    builds apps/console; serves /privacy and /support
   `<company_id>/…` and are served via short-lived signed URLs.
 - One chat thread per crew member (crew see their own; managers see all).
 
+## Plans & billing
+
+- **Every new company gets 30 days of full Pro, free** (`trial_ends_at` on
+  the company; existing companies were grandfathered by v11). One self-serve
+  +14-day extension via `extend_trial()`.
+- **Free plan** after the trial: 1 active manager + 2 active crew, 30-day
+  photo archive (photos are never deleted — older ones lock in the manager
+  console until the company upgrades; crew keep seeing their own work in
+  the field app by design). Seat limits are enforced by DB triggers on
+  invites, profile activation, and signup, serialized per company.
+- **Pro**: $6 / crew seat / month (managers free), one Stripe subscription
+  per company with quantity = active crew seats. Stripe is the source of
+  truth; a webhook mirrors it into `companies.plan`. Plan columns are
+  trigger-protected against client-side edits.
+- **Referrals**: each company has a `referral_code`; a new company entering
+  one at signup gives both sides +30 trial days (referrer capped at 6).
+- Setup: [docs/billing-setup.md](docs/billing-setup.md). Without Stripe env
+  vars everything still works — trials and the free plan just have no
+  upgrade path yet.
+
 ## Setup
 
 1. **Database** — in the Supabase SQL editor, run every file in
@@ -48,7 +71,7 @@ netlify.toml    builds apps/console; serves /privacy and /support
    multitenant core → v3 clients/templates/schedule → v4 estimates &
    recurrence → v5 realtime deletes → v6 issue photos → v7 issue replies →
    v8 settings/onboarding → v9 profile-column protection → v10 account
-   deletion.
+   deletion → v11 plans, trials & referrals.
 2. **Auth setting** — Supabase → Authentication → Sign In / Providers → Email:
    for frictionless testing turn **Confirm email off** (or leave it on — both
    apps show a "check your email" notice after signup).
@@ -81,7 +104,9 @@ development; store builds come later via EAS.
 Netlify builds the console from `netlify.toml` on every push to `main`
 (`npm run build:console` → `apps/console/dist`). `VITE_SUPABASE_URL` and
 `VITE_SUPABASE_ANON_KEY` must be set in Site configuration → Environment
-variables.
+variables. The billing functions additionally need `STRIPE_SECRET_KEY`,
+`STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, and
+`SUPABASE_SERVICE_ROLE_KEY` — see [docs/billing-setup.md](docs/billing-setup.md).
 
 ## Current scope
 
@@ -107,5 +132,10 @@ Profile tab (weekly schedule, hours, name editing, account deletion).
 Store readiness: brand icons & splash, privacy/support pages, in-app account
 deletion (App Store 5.1.1(v)), landing site in apps/landing, and submission
 metadata in [docs/app-store-metadata.md](docs/app-store-metadata.md).
+
+Monetization: 30-day Pro trials with referrals (+30 days each side), free
+plan seat limits (1 manager + 2 crew) with DB-level enforcement, a 30-day
+photo archive gate, and Stripe-backed Pro at $6/crew seat/month (Settings →
+Plan & billing; pricing on the landing page).
 
 Next candidates: exportable reports, password reset, and Android/Play Store.

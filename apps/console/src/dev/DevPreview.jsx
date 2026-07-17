@@ -106,8 +106,28 @@ const invites = [
 
 const ok = async () => ({ data: null, error: null });
 
-// Just enough Supabase surface for usePhotoUrl (photos.jsx) to resolve the
-// bundled sample photos — every data mutation goes through mockData no-ops.
+// Just enough Supabase surface for the mock preview: usePhotoUrl resolves
+// bundled sample photos, Settings' company/referral fetches get static rows,
+// and billingRequest sees "not signed in" instead of crashing.
+const mockCompanyRow = {
+  id: 'mock-co', name: 'Sparkle Cleaning Co.',
+  address: '12 Market Street', phone: '(555) 010-2030',
+};
+
+// Chainable PostgREST-ish stub: every filter returns itself; awaiting the
+// chain (or .single()) resolves with the canned result.
+const mockQuery = ({ row = null, rows = [] } = {}) => {
+  const q = {
+    select: () => q, eq: () => q, order: () => q, is: () => q,
+    gte: () => q, limit: () => q, in: () => q,
+    update: () => q, insert: () => q, delete: () => q,
+    single: () => Promise.resolve({ data: row, error: null }),
+    maybeSingle: () => Promise.resolve({ data: row, error: null }),
+    then: (res, rej) => Promise.resolve({ data: rows, error: null }).then(res, rej),
+  };
+  return q;
+};
+
 const mockClient = {
   storage: {
     from: () => ({
@@ -116,6 +136,12 @@ const mockClient = {
         error: null,
       }),
     }),
+  },
+  from: (t) => mockQuery(t === 'companies' ? { row: mockCompanyRow } : {}),
+  rpc: async () => ({ data: null, error: null }),
+  auth: {
+    getSession: async () => ({ data: { session: null } }),
+    updateUser: async () => ({ data: null, error: null }),
   },
 };
 
@@ -129,6 +155,9 @@ const mockAuth = {
     id: 'mgr-1', companyId: 'mock-co', fullName: 'Dana Lowe', role: 'manager',
     active: true, companyName: 'Sparkle Cleaning Co.',
     email: 'dana@sparkle.example', onboardedAt: iso(30 * day),
+    // Mid-trial so the sidebar chip and Plan & billing render in previews.
+    plan: 'free', trialEndsAt: new Date(Date.now() + 14 * day).toISOString(),
+    trialExtendedAt: null, referralCode: 'SPKL42',
   },
   loading: false,
   refreshProfile: ok,
